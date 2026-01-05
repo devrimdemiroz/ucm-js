@@ -46,6 +46,24 @@ class UCMCanvas {
         // Keyboard
         document.addEventListener('keydown', this.handleKeyDown.bind(this));
         document.addEventListener('keyup', this.handleKeyUp.bind(this));
+
+        // Window resize - debounced
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                this.handleResize();
+            }, 100);
+        });
+    }
+
+    handleResize() {
+        // Ensure SVG fills container after resize
+        const container = document.getElementById('canvas-container');
+        if (container && this.svg) {
+            // SVG uses CSS 100% width/height, but we may need to update transforms
+            this.updateCanvasTransform();
+        }
     }
 
     subscribeToGraph() {
