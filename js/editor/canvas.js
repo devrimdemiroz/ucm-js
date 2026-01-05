@@ -43,6 +43,9 @@ class UCMCanvas {
         this.svg.addEventListener('dblclick', this.handleDoubleClick.bind(this));
         this.svg.addEventListener('contextmenu', this.handleContextMenu.bind(this));
 
+        // Mouse wheel for zooming
+        this.svg.addEventListener('wheel', this.handleWheel.bind(this), { passive: false });
+
         // Keyboard
         document.addEventListener('keydown', this.handleKeyDown.bind(this));
         document.addEventListener('keyup', this.handleKeyUp.bind(this));
@@ -55,6 +58,21 @@ class UCMCanvas {
                 this.handleResize();
             }, 100);
         });
+    }
+
+    handleWheel(e) {
+        e.preventDefault();
+
+        // Get mouse position for zoom centering
+        const rect = this.svg.getBoundingClientRect();
+        const centerX = e.clientX - rect.left;
+        const centerY = e.clientY - rect.top;
+
+        // Zoom direction based on scroll
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+        const newZoom = Math.max(0.1, Math.min(5, this.zoom + delta));
+
+        this.setZoom(newZoom, { x: centerX, y: centerY });
     }
 
     handleResize() {
@@ -455,8 +473,8 @@ class UCMCanvas {
             return;
         }
 
-        // Check for Panning (Space + Click OR Middle Mouse Button)
-        if (e.button === 1 || (e.button === 0 && this.isSpacePressed)) {
+        // Check for Panning (Space + Click OR Middle Mouse Button OR Right-click)
+        if (e.button === 1 || e.button === 2 || (e.button === 0 && this.isSpacePressed)) {
             e.preventDefault();
             this.isPanning = true;
             this.panStart = { x: e.clientX, y: e.clientY };

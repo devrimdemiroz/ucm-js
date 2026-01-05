@@ -857,10 +857,8 @@ input:checked+.slider:before {
     background-image:
         radial-gradient(circle, #ddd 1px, transparent 1px);
     background-size: 20px 20px;
-    /* Visible border around canvas area */
-    border: 2px solid var(--border-color);
-    border-radius: 4px;
-    margin: 4px;
+    /* Subtle inner border */
+    border-left: 1px solid var(--border-light);
 }
 
 #canvas {
