@@ -16,30 +16,102 @@ export const exporter = {
 
     /**
      * Export the graph as an SVG file
+     * Fixed: Properly calculates bounds from graph data, removes pan/zoom transforms
      */
     exportSVG() {
         const svgElement = document.getElementById('canvas');
         if (!svgElement) return;
 
+        // Calculate content bounds from graph data (ignores pan/zoom)
+        const bounds = this.calculateContentBounds();
+        if (!bounds) {
+            alert('Nothing to export - the diagram is empty.');
+            return;
+        }
+
+        const padding = 40;
+        const width = bounds.width + padding * 2;
+        const height = bounds.height + padding * 2;
+        const viewBoxX = bounds.minX - padding;
+        const viewBoxY = bounds.minY - padding;
+
         // Clone the SVG to avoid modifying the original
         const svgClone = svgElement.cloneNode(true);
+
+        // CRITICAL: Remove the CSS transform (pan/zoom) from the cloned SVG
+        svgClone.style.transform = 'none';
+        svgClone.style.transformOrigin = 'initial';
 
         // Remove selection layer from export
         const selectionLayer = svgClone.querySelector('#layer-selection');
         if (selectionLayer) selectionLayer.remove();
 
+        // Remove the background rect (not needed in export)
+        const bgRect = svgClone.querySelector('#canvas-bg');
+        if (bgRect) bgRect.remove();
+
         // Ensure proper namespaces and dimensions
         svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        svgClone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+        svgClone.setAttribute('viewBox', `${viewBoxX} ${viewBoxY} ${width} ${height}`);
+        svgClone.setAttribute('width', width);
+        svgClone.setAttribute('height', height);
 
-        // Get bounding box of all content to set viewBox
-        const bbox = svgElement.getBBox();
-        const padding = 20;
-        svgClone.setAttribute('viewBox', `${bbox.x - padding} ${bbox.y - padding} ${bbox.width + padding * 2} ${bbox.height + padding * 2}`);
-        svgClone.setAttribute('width', bbox.width + padding * 2);
-        svgClone.setAttribute('height', bbox.height + padding * 2);
+        // Add white background rectangle
+        const bgRectExport = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        bgRectExport.setAttribute('x', viewBoxX);
+        bgRectExport.setAttribute('y', viewBoxY);
+        bgRectExport.setAttribute('width', width);
+        bgRectExport.setAttribute('height', height);
+        bgRectExport.setAttribute('fill', 'white');
+        svgClone.insertBefore(bgRectExport, svgClone.firstChild);
 
         const svgData = new XMLSerializer().serializeToString(svgClone);
         this.downloadFile(svgData, 'ucm_diagram.svg', 'image/svg+xml');
+    },
+
+    /**
+     * Calculate the bounding box of all content from graph data
+     * This is independent of any pan/zoom transforms
+     */
+    calculateContentBounds() {
+        const nodes = graph.getAllNodes();
+        const components = graph.getAllComponents();
+
+        if (nodes.length === 0 && components.length === 0) {
+            return null;
+        }
+
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+        // Include all nodes
+        nodes.forEach(node => {
+            const x = node.position.x;
+            const y = node.position.y;
+            // Assume node radius of ~15 for bounds
+            minX = Math.min(minX, x - 15);
+            minY = Math.min(minY, y - 15);
+            maxX = Math.max(maxX, x + 15);
+            maxY = Math.max(maxY, y + 50); // Extra for labels below
+        });
+
+        // Include all components
+        components.forEach(comp => {
+            const b = comp.bounds;
+            minX = Math.min(minX, b.x);
+            minY = Math.min(minY, b.y);
+            maxX = Math.max(maxX, b.x + b.width);
+            maxY = Math.max(maxY, b.y + b.height);
+        });
+
+        return {
+            minX,
+            minY,
+            maxX,
+            maxY,
+            width: maxX - minX,
+            height: maxY - minY
+        };
     },
 
     /**
@@ -180,17 +252,24 @@ export const exporter = {
     /**
      * Export the graph as a PNG image
      * @param {number} scale - Resolution multiplier (1x, 2x, 4x)
-     * @agent main - 2026-01-05 - P2.4 implementation
+     * Fixed: Uses calculateContentBounds for accurate sizing
      */
     async exportPNG(scale = 2) {
         const svgElement = document.getElementById('canvas');
         if (!svgElement) return;
 
-        // Get the bounding box for the content
-        const bbox = svgElement.getBBox();
-        const padding = 20;
-        const width = bbox.width + padding * 2;
-        const height = bbox.height + padding * 2;
+        // Calculate content bounds from graph data (ignores pan/zoom)
+        const bounds = this.calculateContentBounds();
+        if (!bounds) {
+            alert('Nothing to export - the diagram is empty.');
+            return;
+        }
+
+        const padding = 40;
+        const width = bounds.width + padding * 2;
+        const height = bounds.height + padding * 2;
+        const viewBoxX = bounds.minX - padding;
+        const viewBoxY = bounds.minY - padding;
 
         // Create a canvas element
         const canvas = document.createElement('canvas');
@@ -208,15 +287,23 @@ export const exporter = {
         // Clone the SVG
         const svgClone = svgElement.cloneNode(true);
 
+        // CRITICAL: Remove the CSS transform (pan/zoom)
+        svgClone.style.transform = 'none';
+        svgClone.style.transformOrigin = 'initial';
+
         // Remove selection layer
         const selectionLayer = svgClone.querySelector('#layer-selection');
         if (selectionLayer) selectionLayer.remove();
 
-        // Set proper dimensions
+        // Remove background rect
+        const bgRect = svgClone.querySelector('#canvas-bg');
+        if (bgRect) bgRect.remove();
+
+        // Set proper dimensions and viewBox
         svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
         svgClone.setAttribute('width', width);
         svgClone.setAttribute('height', height);
-        svgClone.setAttribute('viewBox', `${bbox.x - padding} ${bbox.y - padding} ${width} ${height}`);
+        svgClone.setAttribute('viewBox', `${viewBoxX} ${viewBoxY} ${width} ${height}`);
 
         // Convert SVG to data URL
         const svgData = new XMLSerializer().serializeToString(svgClone);
@@ -278,62 +365,6 @@ export const exporter = {
         a.download = fileName;
         a.click();
         URL.revokeObjectURL(a.href);
-    },
-
-    /**
-     * Export the graph as a PNG image
-     */
-    exportPNG() {
-        const svgElement = document.getElementById('canvas');
-        if (!svgElement) return;
-
-        // 1. Get SVG data with proper sizing
-        // Use logic similar to exportSVG to ensure full content is visible
-        const svgClone = svgElement.cloneNode(true);
-        const selectionLayer = svgClone.querySelector('#layer-selection');
-        if (selectionLayer) selectionLayer.remove();
-
-        // Get bounding box
-        const bbox = svgElement.getBBox();
-        const padding = 20;
-        const width = bbox.width + padding * 2;
-        const height = bbox.height + padding * 2;
-
-        svgClone.setAttribute('width', width);
-        svgClone.setAttribute('height', height);
-        svgClone.setAttribute('viewBox', `${bbox.x - padding} ${bbox.y - padding} ${width} ${height}`);
-
-        // Ensure background is valid (often needed for PNG)
-        svgClone.style.backgroundColor = 'white';
-
-        const svgData = new XMLSerializer().serializeToString(svgClone);
-        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-        const url = URL.createObjectURL(svgBlob);
-
-        // 2. Render to Canvas
-        const img = new Image();
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-
-            // White background
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, width, height);
-
-            ctx.drawImage(img, 0, 0);
-
-            // 3. Download
-            const pngUrl = canvas.toDataURL('image/png');
-            const a = document.createElement('a');
-            a.href = pngUrl;
-            a.download = 'ucm_diagram.png';
-            a.click();
-
-            URL.revokeObjectURL(url);
-        };
-        img.src = url;
     },
 
     /**
