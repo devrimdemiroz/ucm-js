@@ -137,6 +137,7 @@ body {
     display: flex;
     flex-direction: column;
     height: 100vh;
+    overflow: hidden;
 }
 
 /* ============================================
@@ -145,18 +146,21 @@ body {
 #toolbar {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 8px;
     height: var(--toolbar-height);
-    padding: 0 16px;
+    padding: 0 12px;
     background: var(--bg-secondary);
     border-bottom: 1px solid var(--border-color);
     z-index: 100;
+    overflow: hidden;
+    flex-shrink: 0;
 }
 
 .toolbar-group {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 2px;
+    flex-shrink: 0;
 }
 
 .toolbar-title {
