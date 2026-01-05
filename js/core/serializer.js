@@ -73,7 +73,7 @@ export const serializer = {
             }
         };
 
-        rootComponents.forEach(serializeComponent);
+        rootComponents.forEach(c => serializeComponent(c, 0));
 
         // 3. Standalone Nodes
         const allNodes = graph.getAllNodes();

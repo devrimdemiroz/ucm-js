@@ -26,8 +26,6 @@ class UCMTracing {
         this.sessionId = this.generateSpanId(); // Unique session ID
 
         // Current trace context for parent-child linking
-        this.currentTraceId = null;
-        this.currentClientSpanId = null;
     }
 
     setEnabled(enabled) {
