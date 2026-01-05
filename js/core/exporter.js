@@ -281,6 +281,62 @@ export const exporter = {
     },
 
     /**
+     * Export the graph as a PNG image
+     */
+    exportPNG() {
+        const svgElement = document.getElementById('canvas');
+        if (!svgElement) return;
+
+        // 1. Get SVG data with proper sizing
+        // Use logic similar to exportSVG to ensure full content is visible
+        const svgClone = svgElement.cloneNode(true);
+        const selectionLayer = svgClone.querySelector('#layer-selection');
+        if (selectionLayer) selectionLayer.remove();
+
+        // Get bounding box
+        const bbox = svgElement.getBBox();
+        const padding = 20;
+        const width = bbox.width + padding * 2;
+        const height = bbox.height + padding * 2;
+
+        svgClone.setAttribute('width', width);
+        svgClone.setAttribute('height', height);
+        svgClone.setAttribute('viewBox', `${bbox.x - padding} ${bbox.y - padding} ${width} ${height}`);
+
+        // Ensure background is valid (often needed for PNG)
+        svgClone.style.backgroundColor = 'white';
+
+        const svgData = new XMLSerializer().serializeToString(svgClone);
+        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(svgBlob);
+
+        // 2. Render to Canvas
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+
+            // White background
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.drawImage(img, 0, 0);
+
+            // 3. Download
+            const pngUrl = canvas.toDataURL('image/png');
+            const a = document.createElement('a');
+            a.href = pngUrl;
+            a.download = 'ucm_diagram.png';
+            a.click();
+
+            URL.revokeObjectURL(url);
+        };
+        img.src = url;
+    },
+
+    /**
      * Escape XML characters
      */
     escapeXml(unsafe) {
