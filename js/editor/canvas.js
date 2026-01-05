@@ -63,16 +63,24 @@ class UCMCanvas {
     handleWheel(e) {
         e.preventDefault();
 
-        // Get mouse position for zoom centering
-        const rect = this.svg.getBoundingClientRect();
-        const centerX = e.clientX - rect.left;
-        const centerY = e.clientY - rect.top;
+        // Ctrl/Cmd + Wheel = Zoom (pinch gesture on trackpad)
+        if (e.ctrlKey || e.metaKey) {
+            // Get mouse position for zoom centering
+            const rect = this.svg.getBoundingClientRect();
+            const centerX = e.clientX - rect.left;
+            const centerY = e.clientY - rect.top;
 
-        // Zoom direction based on scroll
-        const delta = e.deltaY > 0 ? -0.1 : 0.1;
-        const newZoom = Math.max(0.1, Math.min(5, this.zoom + delta));
+            // Zoom direction based on scroll
+            const delta = e.deltaY > 0 ? -0.1 : 0.1;
+            const newZoom = Math.max(0.1, Math.min(5, this.zoom + delta));
 
-        this.setZoom(newZoom, { x: centerX, y: centerY });
+            this.setZoom(newZoom, { x: centerX, y: centerY });
+        } else {
+            // Plain wheel/trackpad scroll = Pan (smooth scrolling)
+            this.pan.x -= e.deltaX;
+            this.pan.y -= e.deltaY;
+            this.updateCanvasTransform();
+        }
     }
 
     handleResize() {
