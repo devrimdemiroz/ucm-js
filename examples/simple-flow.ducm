@@ -1,0 +1,15 @@
+ucm "SimpleFlow"
+
+component "WebApp" type process at (50, 100) size (200, 200) {
+  start "Begin" at (120, 150)
+  responsibility "Validate" at (120, 220)
+}
+
+component "Backend" type process at (300, 100) size (150, 200) {
+  responsibility "Process" at (360, 200)
+  end "Done" at (360, 250)
+}
+
+link "Begin" -> "Validate"
+link "Validate" -> "Process"
+link "Process" -> "Done"

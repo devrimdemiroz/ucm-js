@@ -1,0 +1,169 @@
+{
+  "name": "UCM Editor Observability Stack",
+  "description": "Browser traces flow through OpenTelemetry Collector to Prometheus and Jaeger",
+  "version": "1.0",
+  "nodes": [
+    {
+      "id": "start_trace",
+      "type": "start",
+      "position": { "x": 120, "y": 280 },
+      "properties": { "name": "UserAction" },
+      "inEdges": [],
+      "outEdges": ["edge_1"]
+    },
+    {
+      "id": "resp_create_span",
+      "type": "responsibility",
+      "position": { "x": 280, "y": 280 },
+      "properties": { "name": "CreateSpan" },
+      "inEdges": ["edge_1"],
+      "outEdges": ["edge_2"]
+    },
+    {
+      "id": "resp_send_trace",
+      "type": "responsibility",
+      "position": { "x": 440, "y": 280 },
+      "properties": { "name": "SendTrace" },
+      "inEdges": ["edge_2"],
+      "outEdges": ["edge_3"]
+    },
+    {
+      "id": "resp_receive",
+      "type": "responsibility",
+      "position": { "x": 640, "y": 280 },
+      "properties": { "name": "ReceiveOTLP" },
+      "inEdges": ["edge_3"],
+      "outEdges": ["edge_4"]
+    },
+    {
+      "id": "fork_connectors",
+      "type": "fork",
+      "position": { "x": 800, "y": 280 },
+      "properties": { "name": "", "forkType": "and" },
+      "inEdges": ["edge_4"],
+      "outEdges": ["edge_5", "edge_6", "edge_7"]
+    },
+    {
+      "id": "resp_spanmetrics",
+      "type": "responsibility",
+      "position": { "x": 960, "y": 150 },
+      "properties": { "name": "SpanMetrics" },
+      "inEdges": ["edge_5"],
+      "outEdges": ["edge_8"]
+    },
+    {
+      "id": "resp_servicegraph",
+      "type": "responsibility",
+      "position": { "x": 960, "y": 280 },
+      "properties": { "name": "ServiceGraph" },
+      "inEdges": ["edge_6"],
+      "outEdges": ["edge_9"]
+    },
+    {
+      "id": "resp_forward_jaeger",
+      "type": "responsibility",
+      "position": { "x": 960, "y": 410 },
+      "properties": { "name": "ForwardTraces" },
+      "inEdges": ["edge_7"],
+      "outEdges": ["edge_10"]
+    },
+    {
+      "id": "resp_store_metrics",
+      "type": "responsibility",
+      "position": { "x": 1160, "y": 180 },
+      "properties": { "name": "StoreMetrics" },
+      "inEdges": ["edge_8", "edge_9"],
+      "outEdges": ["edge_11"]
+    },
+    {
+      "id": "resp_store_traces",
+      "type": "responsibility",
+      "position": { "x": 1160, "y": 410 },
+      "properties": { "name": "StoreTraces" },
+      "inEdges": ["edge_10"],
+      "outEdges": ["edge_12"]
+    },
+    {
+      "id": "join_storage",
+      "type": "join",
+      "position": { "x": 1320, "y": 280 },
+      "properties": { "name": "", "joinType": "and" },
+      "inEdges": ["edge_11", "edge_12"],
+      "outEdges": ["edge_13"]
+    },
+    {
+      "id": "end_observable",
+      "type": "end",
+      "position": { "x": 1450, "y": 280 },
+      "properties": { "name": "Observable" },
+      "inEdges": ["edge_13"],
+      "outEdges": []
+    }
+  ],
+  "edges": [
+    { "id": "edge_1", "sourceNodeId": "start_trace", "targetNodeId": "resp_create_span" },
+    { "id": "edge_2", "sourceNodeId": "resp_create_span", "targetNodeId": "resp_send_trace" },
+    { "id": "edge_3", "sourceNodeId": "resp_send_trace", "targetNodeId": "resp_receive" },
+    { "id": "edge_4", "sourceNodeId": "resp_receive", "targetNodeId": "fork_connectors" },
+    { "id": "edge_5", "sourceNodeId": "fork_connectors", "targetNodeId": "resp_spanmetrics" },
+    { "id": "edge_6", "sourceNodeId": "fork_connectors", "targetNodeId": "resp_servicegraph" },
+    { "id": "edge_7", "sourceNodeId": "fork_connectors", "targetNodeId": "resp_forward_jaeger" },
+    { "id": "edge_8", "sourceNodeId": "resp_spanmetrics", "targetNodeId": "resp_store_metrics" },
+    { "id": "edge_9", "sourceNodeId": "resp_servicegraph", "targetNodeId": "resp_store_metrics" },
+    { "id": "edge_10", "sourceNodeId": "resp_forward_jaeger", "targetNodeId": "resp_store_traces" },
+    { "id": "edge_11", "sourceNodeId": "resp_store_metrics", "targetNodeId": "join_storage" },
+    { "id": "edge_12", "sourceNodeId": "resp_store_traces", "targetNodeId": "join_storage" },
+    { "id": "edge_13", "sourceNodeId": "join_storage", "targetNodeId": "end_observable" }
+  ],
+  "components": [
+    {
+      "id": "comp_browser",
+      "type": "actor",
+      "bounds": { "x": 60, "y": 180, "width": 180, "height": 200 },
+      "properties": { "name": "Browser" },
+      "childNodes": ["start_trace"],
+      "childComponents": []
+    },
+    {
+      "id": "comp_ucm_editor",
+      "type": "process",
+      "bounds": { "x": 250, "y": 180, "width": 250, "height": 200 },
+      "properties": { "name": "UCM-Editor" },
+      "childNodes": ["resp_create_span", "resp_send_trace"],
+      "childComponents": []
+    },
+    {
+      "id": "comp_otel",
+      "type": "agent",
+      "bounds": { "x": 560, "y": 80, "width": 480, "height": 400 },
+      "properties": { "name": "OTel-Collector" },
+      "childNodes": ["resp_receive", "fork_connectors", "resp_spanmetrics", "resp_servicegraph", "resp_forward_jaeger"],
+      "childComponents": []
+    },
+    {
+      "id": "comp_prometheus",
+      "type": "object",
+      "bounds": { "x": 1100, "y": 100, "width": 160, "height": 160 },
+      "properties": { "name": "Prometheus" },
+      "childNodes": ["resp_store_metrics"],
+      "childComponents": []
+    },
+    {
+      "id": "comp_jaeger",
+      "type": "object",
+      "bounds": { "x": 1100, "y": 330, "width": 160, "height": 160 },
+      "properties": { "name": "Jaeger" },
+      "childNodes": ["resp_store_traces"],
+      "childComponents": []
+    },
+    {
+      "id": "comp_spm",
+      "type": "team",
+      "bounds": { "x": 1280, "y": 200, "width": 220, "height": 180 },
+      "properties": { "name": "SPM Dashboard" },
+      "childNodes": ["join_storage", "end_observable"],
+      "childComponents": []
+    }
+  ],
+  "idCounter": 20
+}

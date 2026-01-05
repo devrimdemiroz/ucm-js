@@ -1,0 +1,29 @@
+ucm "Commute - Bus (Plug-in)"
+
+component "transport" type process at (50, 250) size (800, 200) {
+  start "take_bus" at (100, 300)
+  fork "AND_Fork" at (200, 300)
+  fork "OR_Fork" at (300, 350)
+  responsibility "take_95" at (400, 320)
+  responsibility "take_97" at (400, 380)
+  join "OR_Join" at (500, 350)
+  join "AND_Join" at (600, 300)
+  responsibility "take_182" at (700, 300)
+  end "bus_taken" at (800, 300)
+}
+
+component "person" type actor at (250, 150) size (300, 120) {
+  responsibility "read_Dilbert" at (400, 200)
+}
+
+link "take_bus" -> "AND_Fork"
+link "AND_Fork" -> "OR_Fork"
+link "AND_Fork" -> "read_Dilbert"
+link "OR_Fork" -> "take_95"
+link "OR_Fork" -> "take_97"
+link "take_95" -> "OR_Join"
+link "take_97" -> "OR_Join"
+link "OR_Join" -> "AND_Join"
+link "read_Dilbert" -> "AND_Join"
+link "AND_Join" -> "take_182"
+link "take_182" -> "bus_taken"

@@ -1,0 +1,27 @@
+ucm "ParallelProcessing"
+
+component "UserInterface" type process at (50, 50) size (200, 400) {
+  start "Request" at (120, 150)
+  responsibility "ValidateInput" at (120, 300)
+}
+
+component "Backend" type process at (300, 100) size (300, 300) {
+  fork "Split" at (350, 250)
+  responsibility "ProcessA" at (450, 150)
+  responsibility "ProcessB" at (450, 350)
+  join "Merge" at (550, 250)
+}
+
+component "Output" type process at (650, 150) size (150, 200) {
+  responsibility "FormatResult" at (700, 250)
+  end "Complete" at (700, 300)
+}
+
+link "Request" -> "ValidateInput"
+link "ValidateInput" -> "Split"
+link "Split" -> "ProcessA"
+link "Split" -> "ProcessB"
+link "ProcessA" -> "Merge"
+link "ProcessB" -> "Merge"
+link "Merge" -> "FormatResult"
+link "FormatResult" -> "Complete"

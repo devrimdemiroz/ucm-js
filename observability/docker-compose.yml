@@ -1,0 +1,70 @@
+version: '3.8'
+
+# UCM Editor Observability Stack
+# CNCF: Prometheus (metrics) + Jaeger (tracing) + OpenTelemetry Collector
+# SPM (Service Performance Monitoring) enabled
+
+services:
+  # OpenTelemetry Collector - receives traces, exports to Jaeger, generates metrics for Prometheus
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.92.0
+    container_name: ucm-otel-collector
+    command: [ "--config=/etc/otel-collector-config.yaml" ]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    ports:
+      - "4317:4317" # OTLP gRPC receiver
+      - "4318:4318" # OTLP HTTP receiver
+      - "8889:8889" # Prometheus metrics exporter (spanmetrics)
+    depends_on:
+      - jaeger
+    networks:
+      - ucm-observability
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+  # Jaeger - distributed tracing backend with SPM enabled
+  jaeger:
+    image: jaegertracing/all-in-one:1.53
+    container_name: ucm-jaeger
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      # Enable SPM (Monitor tab) - connects to Prometheus for metrics
+      - METRICS_STORAGE_TYPE=prometheus
+      - PROMETHEUS_SERVER_URL=http://prometheus:9090
+      - PROMETHEUS_QUERY_NORMALIZE_CALLS=true
+      - PROMETHEUS_QUERY_NORMALIZE_DURATION=true
+    ports:
+      - "16686:16686" # Jaeger UI
+      - "14250:14250" # gRPC for OTel Collector
+    depends_on:
+      - prometheus
+    networks:
+      - ucm-observability
+
+  # Prometheus - metrics storage and querying
+  prometheus:
+    image: prom/prometheus:v2.48.1
+    container_name: ucm-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+      - '--web.enable-remote-write-receiver'
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090" # Prometheus UI
+    networks:
+      - ucm-observability
+
+networks:
+  ucm-observability:
+    driver: bridge
+
+volumes:
+  prometheus-data:

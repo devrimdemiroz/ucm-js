@@ -1,0 +1,91 @@
+{
+  "name": "Parallel Processing Demo",
+  "description": "User request with parallel processing branches using AND-Fork/Join",
+  "version": "1.0",
+  "nodes": [
+    {
+      "id": "node_1",
+      "type": "start",
+      "position": { "x": 100, "y": 300 },
+      "properties": { "name": "UserRequest" },
+      "inEdges": [],
+      "outEdges": ["edge_1"]
+    },
+    {
+      "id": "node_2",
+      "type": "responsibility",
+      "position": { "x": 300, "y": 300 },
+      "properties": { "name": "ValidateInput" },
+      "inEdges": ["edge_1"],
+      "outEdges": ["edge_2"]
+    },
+    {
+      "id": "node_3",
+      "type": "fork",
+      "position": { "x": 450, "y": 300 },
+      "properties": { "name": "", "forkType": "and" },
+      "inEdges": ["edge_2"],
+      "outEdges": ["edge_3", "edge_4"]
+    },
+    {
+      "id": "node_4",
+      "type": "responsibility",
+      "position": { "x": 600, "y": 200 },
+      "properties": { "name": "ProcessData" },
+      "inEdges": ["edge_3"],
+      "outEdges": ["edge_5"]
+    },
+    {
+      "id": "node_5",
+      "type": "responsibility",
+      "position": { "x": 600, "y": 400 },
+      "properties": { "name": "CallExternalAPI" },
+      "inEdges": ["edge_4"],
+      "outEdges": ["edge_6"]
+    },
+    {
+      "id": "node_6",
+      "type": "join",
+      "position": { "x": 750, "y": 300 },
+      "properties": { "name": "", "joinType": "and" },
+      "inEdges": ["edge_5", "edge_6"],
+      "outEdges": ["edge_7"]
+    },
+    {
+      "id": "node_7",
+      "type": "end",
+      "position": { "x": 900, "y": 300 },
+      "properties": { "name": "Complete" },
+      "inEdges": ["edge_7"],
+      "outEdges": []
+    }
+  ],
+  "edges": [
+    { "id": "edge_1", "sourceNodeId": "node_1", "targetNodeId": "node_2" },
+    { "id": "edge_2", "sourceNodeId": "node_2", "targetNodeId": "node_3" },
+    { "id": "edge_3", "sourceNodeId": "node_3", "targetNodeId": "node_4" },
+    { "id": "edge_4", "sourceNodeId": "node_3", "targetNodeId": "node_5" },
+    { "id": "edge_5", "sourceNodeId": "node_4", "targetNodeId": "node_6" },
+    { "id": "edge_6", "sourceNodeId": "node_5", "targetNodeId": "node_6" },
+    { "id": "edge_7", "sourceNodeId": "node_6", "targetNodeId": "node_7" }
+  ],
+  "components": [
+    {
+      "id": "comp_1",
+      "type": "actor",
+      "bounds": { "x": 50, "y": 200, "width": 150, "height": 200 },
+      "properties": { "name": "User" },
+      "childNodes": ["node_1"],
+      "childComponents": []
+    },
+    {
+      "id": "comp_2",
+      "type": "team",
+      "bounds": { "x": 250, "y": 120, "width": 700, "height": 350 },
+      "properties": { "name": "System" },
+      "childNodes": ["node_2", "node_3", "node_4", "node_5", "node_6", "node_7"],
+      "childComponents": []
+    }
+  ],
+  "idCounter": 10
+}

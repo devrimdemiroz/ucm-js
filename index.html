@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UCM Editor</title>
+    <meta name="description" content="Use Case Map graphical editor with node/edge graph abstraction">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <div id="app">
+        <!-- Toolbar -->
+        <header id="toolbar">
+            <div class="toolbar-group">
+                <button id="tool-select" class="tool-btn active" title="Select (V)">
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                        <path fill="currentColor" d="M7,2l12,11.2l-5.8,0.5l3.3,7.3l-2.2,1l-3.2-7.4L7,18.5V2" />
+                    </svg>
+                </button>
+                <button id="tool-path" class="tool-btn" title="Path Tool (P)">
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                        <circle cx="4" cy="12" r="3" fill="currentColor" />
+                        <rect x="18" y="10" width="4" height="8" fill="currentColor" />
+                        <path stroke="currentColor" stroke-width="2" fill="none" d="M7,12 Q12,4 18,12" />
+                    </svg>
+                </button>
+                <button id="tool-component" class="tool-btn" title="Component Tool (C)">
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                        <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"
+                            fill="none" />
+                        <line x1="3" y1="9" x2="21" y2="9" stroke="currentColor" stroke-width="2" />
+                    </svg>
+                </button>
+                <button id="tool-delete" class="tool-btn" title="Delete (Del)">
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                        <path fill="currentColor"
+                            d="M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19M8,9H16V19H8V9M15.5,4L14.5,3H9.5L8.5,4H5V6H19V4H15.5Z" />
+                    </svg>
+                </button>
+            </div>
+            <div class="toolbar-group">
+                <button id="btn-undo" class="tool-btn" title="Undo (Ctrl+Z)" disabled>
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                        <path fill="currentColor"
+                            d="M12.5,8C9.85,8 7.45,9 5.6,10.6L2,7V16H11L7.38,12.38C8.77,11.22 10.54,10.5 12.5,10.5C16.04,10.5 19.05,12.81 20.1,16L22.47,15.22C21.08,11.03 17.15,8 12.5,8Z" />
+                    </svg>
+                </button>
+                <button id="btn-redo" class="tool-btn" title="Redo (Ctrl+Y)" disabled>
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                        <path fill="currentColor"
+                            d="M10.5,8C13.15,8 15.55,9 17.4,10.6L21,7V16H12L15.62,12.38C14.23,11.22 12.46,10.5 10.5,10.5C6.96,10.5 3.95,12.81 2.9,16L0.53,15.22C1.92,11.03 5.85,8 10.5,8Z" />
+                    </svg>
+                </button>
+            </div>
+            <div class="toolbar-group toolbar-title">
+                <div class="file-selector">
+                    <select id="file-dropdown" title="Load Example Diagram">
+                        <option value="">-- Select Diagram --</option>
+                        <option value="demo-parallel-processing">Parallel Processing Demo</option>
+                        <option value="observability-stack">Observability Stack</option>
+                        <option value="dilbert">Dilbert Commute</option>
+                    </select>
+                </div>
+                <span>UCM Editor</span>
+            </div>
+            <div class="toolbar-group">
+                <button id="btn-save" class="tool-btn" title="Save as JSON">
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                        <path fill="currentColor"
+                            d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z" />
+                    </svg>
+                </button>
+                <div class="dropdown">
+                    <button id="btn-export-menu" class="tool-btn dropdown-toggle" title="Export Options">
+                        <svg viewBox="0 0 24 24" width="20" height="20">
+                            <path fill="currentColor" d="M12,16L5,9H19L12,16Z" />
+                        </svg>
+                    </button>
+                    <div id="export-dropdown" class="dropdown-menu">
+                        <button id="btn-export-pdf" class="menu-item">PDF (Image)</button>
+                        <button id="btn-export-jucm" class="menu-item">jUCM Format</button>
+                        <button id="btn-export-d3" class="menu-item">D3.js Data</button>
+                        <button id="btn-export-cy" class="menu-item">Cytoscape Data</button>
+                        <button id="btn-export-svg" class="menu-item">SVG Vector</button>
+                    </div>
+                </div>
+                <button id="btn-import-json" class="tool-btn" title="Upload File (Import)">
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                        <path fill="currentColor"
+                            d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M15,13L10,18L7,15L8.41,13.59L10,15.17L13.59,11.58L15,13Z" />
+                    </svg>
+                </button>
+                <input type="file" id="file-input" style="display: none;" accept=".json,.ducm">
+            </div>
+            <div class="toolbar-group">
+                <button id="btn-zoom-out" class="tool-btn" title="Zoom Out (Ctrl+-)">−</button>
+                <span id="zoom-level">100%</span>
+                <button id="btn-zoom-in" class="tool-btn" title="Zoom In (Ctrl++)">+</button>
+            </div>
+            <div class="toolbar-group toolbar-observability">
+                <a href="http://localhost:9090" target="_blank" class="tool-link" title="Open Prometheus">
+                    <svg viewBox="0 0 24 24" width="18" height="18">
+                        <circle cx="12" cy="12" r="10" fill="#E6522C" />
+                        <circle cx="12" cy="12" r="4" fill="white" />
+                    </svg>
+                </a>
+                <a href="http://localhost:16686" target="_blank" class="tool-link" title="Open Jaeger Tracing">
+                    <svg viewBox="0 0 24 24" width="18" height="18">
+                        <polygon points="12,2 22,8 22,16 12,22 2,16 2,8" fill="#66CFE3" />
+                        <polygon points="12,6 18,9 18,15 12,18 6,15 6,9" fill="white" />
+                    </svg>
+                </a>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main id="main-content">
+            <!-- Left Panel -->
+            <aside id="left-panel">
+                <!-- Sidebar Tabs Navigation -->
+                <nav class="sidebar-tabs">
+                    <button class="tab-btn active" data-tab="hierarchy" title="Hierarchy View">
+                        <svg viewBox="0 0 24 24" width="16" height="16">
+                            <path fill="currentColor"
+                                d="M3,13h8V3H3V13z M3,21h8v-6H3V21z M13,21h8V11h-8V21z M13,3v6h8V3H13z" />
+                        </svg>
+                        <span>Hierarchy</span>
+                    </button>
+                    <button class="tab-btn" data-tab="editor" title="DSL Editor">
+                        <svg viewBox="0 0 24 24" width="16" height="16">
+                            <path fill="currentColor"
+                                d="M14,10H19.5L14,4.5V10M5,3H15L21,9V19A2,2 0 0,1 19,21H5C3.89,21 3,20.1 3,19V5C3,3.89 3.89,3 5,3M7,12V14H17V12H7M7,16V18H14V16H7Z" />
+                        </svg>
+                        <span>Editor</span>
+                    </button>
+                    <button class="tab-btn" data-tab="settings" title="Global Settings">
+                        <svg viewBox="0 0 24 24" width="16" height="16">
+                            <path fill="currentColor"
+                                d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11.03L21.54,9.37C21.73,9.22 21.78,8.97 21.65,8.79L19.65,5.32C19.5,5.15 19.3,5.09 19.1,5.18L16.61,6.18C16.1,5.78 15.53,5.46 14.93,5.23L14.56,2.58C14.5,2.37 14.33,2.21 14.12,2.21H10.12C9.9,2.21 9.73,2.37 9.69,2.58L9.32,5.23C8.71,5.46 8.15,5.78 7.64,6.18L5.15,5.18C4.95,5.09 4.75,5.15 4.6,5.32L2.6,8.79C2.47,8.97 2.5,9.22 2.71,9.37L4.82,11.03C4.78,11.34 4.75,11.67 4.75,12C4.75,12.33 4.78,12.65 4.82,12.97L2.71,14.63C2.5,14.78 2.45,15.03 2.58,15.21L4.58,18.68C4.7,18.85 4.9,18.91 5.1,18.82L7.59,17.82C8.1,18.22 8.67,18.54 9.27,18.77L9.64,21.42C9.69,21.63 9.86,21.79 10.07,21.79H14.07C14.29,21.79 14.46,21.63 14.5,21.42L14.87,18.77C15.47,18.54 16.04,18.22 16.55,17.82L19.04,18.82C19.24,18.91 19.44,18.85 19.59,18.68L21.59,15.21C21.72,15.03 21.67,14.78 21.46,14.63L19.43,12.97Z" />
+                        </svg>
+                        <span>Settings</span>
+                    </button>
+                </nav>
+
+                <!-- Sidebar Content -->
+                <div id="sidebar-content">
+                    <!-- Hierarchy View -->
+                    <section id="tab-hierarchy" class="tab-content active">
+                        <div id="hierarchy-tree" class="panel-content">
+                            <!-- Populated by JS -->
+                        </div>
+                    </section>
+
+                    <!-- DSL Editor View -->
+                    <section id="tab-editor" class="tab-content">
+                        <div class="dsl-editor-container">
+                            <textarea id="dsl-editor" spellcheck="false" placeholder="Enter UCM DSL here..."></textarea>
+                            <div class="dsl-actions">
+                                <span id="editor-status">Ready</span>
+                                <button id="btn-apply-dsl" class="mini-btn"
+                                    title="Apply DSL Changes (Ctrl+Enter)">Apply</button>
+                            </div>
+                        </div>
+                        <!-- AI Chat Prompt -->
+                        <div class="ai-chat-container">
+                            <div class="ai-chat-input-wrap">
+                                <input type="text" id="ai-prompt" placeholder="Ask AI: add component, create path..."
+                                    spellcheck="false">
+                                <button id="btn-ai-send" class="mini-btn" title="Send (Enter)">→</button>
+                            </div>
+                            <div id="ai-response" class="ai-response"></div>
+                        </div>
+                    </section>
+
+                    <!-- Settings View -->
+                    <section id="tab-settings" class="tab-content">
+                        <div class="panel-content settings-container">
+                            <div class="settings-group">
+                                <h3 class="settings-title">Visual Style</h3>
+                                <div class="setting-item">
+                                    <span class="setting-label">Transit Map Mode</span>
+                                    <label class="switch">
+                                        <input type="checkbox" id="setting-transit-mode" checked>
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <span class="setting-label">Show Grid</span>
+                                    <label class="switch">
+                                        <input type="checkbox" id="setting-show-grid" checked>
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <span class="setting-label">Show Labels</span>
+                                    <label class="switch">
+                                        <input type="checkbox" id="setting-show-labels" checked>
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="settings-group">
+                                <h3 class="settings-title">System</h3>
+                                <div class="setting-item">
+                                    <span class="setting-label">Observability (Tracing)</span>
+                                    <label class="switch">
+                                        <input type="checkbox" id="setting-observability">
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="settings-group">
+                                <h3 class="settings-title">Behavior</h3>
+                                <div class="setting-item">
+                                    <span class="setting-label">Snap to Grid</span>
+                                    <label class="switch">
+                                        <input type="checkbox" id="setting-snap-grid">
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <span class="setting-label">Auto-layout</span>
+                                    <label class="switch">
+                                        <input type="checkbox" id="setting-auto-layout">
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <span class="setting-label">Edge Routing</span>
+                                    <select id="setting-routing-mode" class="setting-select">
+                                        <option value="octilinear">Metro (8-dir)</option>
+                                        <option value="orthogonal">Orthogonal</option>
+                                        <option value="freeform">Freeform</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Actions Panel (first - always visible) -->
+                <section id="actions-panel" class="panel">
+                    <h2 class="panel-header">Actions</h2>
+                    <div id="actions-content" class="panel-content">
+                        <!-- Actions always available -->
+                    </div>
+                </section>
+
+                <!-- Properties Panel (compact, after actions) -->
+                <section id="properties-panel" class="panel panel-compact">
+                    <h2 class="panel-header">Properties</h2>
+                    <div id="properties-content" class="panel-content">
+                        <p class="placeholder-text">Select an element</p>
+                    </div>
+                </section>
+            </aside>
+
+            <!-- Canvas Area -->
+            <div id="canvas-container">
+                <svg id="canvas" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <!-- Arrow marker for edges -->
+                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
+                        </marker>
+                    </defs>
+                    <!-- Background rect to capture clicks on empty space -->
+                    <rect id="canvas-bg" width="100%" height="100%" fill="transparent" />
+                    <!-- Layers -->
+                    <g id="layer-components"></g>
+                    <g id="layer-edges"></g>
+                    <g id="layer-nodes"></g>
+                    <g id="layer-labels"></g>
+                    <g id="layer-selection"></g>
+                </svg>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="js/app.js"></script>
+</body>
+
+</html>

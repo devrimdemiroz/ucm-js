@@ -1,0 +1,70 @@
+{
+    "resourceSpans": [
+        {
+            "resource": {
+                "attributes": [
+                    {
+                        "key": "service.name",
+                        "value": {
+                            "stringValue": "ucm-browser"
+                        }
+                    }
+                ]
+            },
+            "scopeSpans": [
+                {
+                    "scope": {
+                        "name": "browser-test"
+                    },
+                    "spans": [
+                        {
+                            "traceId": "00112233445566778899aabbccddeeff",
+                            "spanId": "aabbccddeeff0011",
+                            "parentSpanId": "",
+                            "name": "user.test_action",
+                            "kind": 3,
+                            "startTimeUnixNano": "1767628900000000000",
+                            "endTimeUnixNano": "1767628950000000000",
+                            "status": {
+                                "code": 1
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "resource": {
+                "attributes": [
+                    {
+                        "key": "service.name",
+                        "value": {
+                            "stringValue": "ucm-editor"
+                        }
+                    }
+                ]
+            },
+            "scopeSpans": [
+                {
+                    "scope": {
+                        "name": "editor-test"
+                    },
+                    "spans": [
+                        {
+                            "traceId": "00112233445566778899aabbccddeeff",
+                            "spanId": "2233445566778899",
+                            "parentSpanId": "aabbccddeeff0011",
+                            "name": "editor.test_operation",
+                            "kind": 2,
+                            "startTimeUnixNano": "1767628910000000000",
+                            "endTimeUnixNano": "1767628940000000000",
+                            "status": {
+                                "code": 1
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

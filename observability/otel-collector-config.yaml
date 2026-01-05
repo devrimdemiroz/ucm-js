@@ -1,0 +1,115 @@
+# OpenTelemetry Collector Configuration
+# Uses spanmetrics and servicegraph CONNECTORS (otelcol-contrib)
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - "http://localhost:8080"
+            - "http://127.0.0.1:8080"
+          allowed_headers:
+            - "*"
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+
+  probabilistic_sampler:
+    sampling_percentage: 10
+
+# Connectors - bridge between pipelines (traces -> metrics)
+connectors:
+  # Spanmetrics connector - generates RED metrics from spans
+  spanmetrics:
+    histogram:
+      explicit:
+        buckets: [100ms, 1s, 10s]
+    dimensions:
+      - name: http.method
+      - name: http.status_code
+    exemplars:
+      enabled: false
+    dimensions_cache_size: 1000
+    aggregation_temporality: AGGREGATION_TEMPORALITY_CUMULATIVE
+    metrics_flush_interval: 15s
+
+  # Servicegraph connector - generates service topology metrics
+  servicegraph:
+    latency_histogram_buckets: [100ms, 1s, 10s]
+    dimensions:
+      - http.method
+    store:
+      ttl: 2s
+      max_items: 1000
+
+exporters:
+  # Export traces to Jaeger
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+
+  # Export span-derived metrics to Prometheus
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    namespace: ucm
+    const_labels:
+      environment: development
+    resource_to_telemetry_conversion:
+      enabled: true
+
+  # Debug logging
+  debug:
+    verbosity: basic
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  extensions: [health_check, zpages]
+  pipelines:
+    # 1. Analytics Pipeline: 100% of traces -> Metrics Connectors
+    # No sampling here to ensure accurate metrics
+    traces/analytics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [spanmetrics, servicegraph]
+
+    # 2. Storage Pipeline: 10% of traces -> Jaeger
+    # Sampled to reduce storage costs
+    traces/storage:
+      receivers: [otlp]
+      processors: [memory_limiter, probabilistic_sampler, batch]
+      exporters: [otlp/jaeger]
+
+    # Metrics from spanmetrics connector
+    metrics/spanmetrics:
+      receivers: [spanmetrics]
+      processors: [batch]
+      exporters: [prometheus]
+
+    # Metrics from servicegraph connector  
+    metrics/servicegraph:
+      receivers: [servicegraph]
+      processors: [batch]
+      exporters: [prometheus]
+
+    # Direct metrics (if app sends metrics via OTLP)
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [prometheus]

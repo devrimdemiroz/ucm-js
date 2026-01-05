@@ -1,0 +1,47 @@
+ucm "ObservabilityStack"
+
+component "Browser" type actor at (60, 180) size (180, 200) {
+  start "UserAction" at (120, 280)
+}
+
+component "UCM_Editor" type process at (250, 180) size (250, 200) {
+  responsibility "CreateSpan" at (280, 280)
+  responsibility "SendTrace" at (440, 280)
+}
+
+component "OTel_Collector" type agent at (560, 80) size (480, 400) {
+  responsibility "ReceiveOTLP" at (640, 280)
+  fork "Distribute" at (800, 280)
+  responsibility "SpanMetrics" at (960, 150)
+  responsibility "ServiceGraph" at (960, 280)
+  join "MetricsJoin" at (1040, 215)
+  responsibility "ForwardTraces" at (960, 410)
+}
+
+component "Prometheus" type object at (1100, 100) size (160, 160) {
+  responsibility "StoreMetrics" at (1160, 180)
+}
+
+component "Jaeger" type object at (1100, 330) size (160, 160) {
+  responsibility "StoreTraces" at (1160, 410)
+}
+
+component "SPM_Dashboard" type team at (1280, 200) size (220, 180) {
+  join "Aggregate" at (1320, 280)
+  end "Observable" at (1450, 280)
+}
+
+link "UserAction" -> "CreateSpan"
+link "CreateSpan" -> "SendTrace"
+link "SendTrace" -> "ReceiveOTLP"
+link "ReceiveOTLP" -> "Distribute"
+link "Distribute" -> "SpanMetrics"
+link "Distribute" -> "ServiceGraph"
+link "Distribute" -> "ForwardTraces"
+link "SpanMetrics" -> "MetricsJoin"
+link "ServiceGraph" -> "MetricsJoin"
+link "MetricsJoin" -> "StoreMetrics"
+link "ForwardTraces" -> "StoreTraces"
+link "StoreMetrics" -> "Aggregate"
+link "StoreTraces" -> "Aggregate"
+link "Aggregate" -> "Observable"
