@@ -72,6 +72,12 @@
                             d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z" />
                     </svg>
                 </button>
+                <button id="btn-validate" class="tool-btn" title="Validate Diagram">
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                        <path fill="currentColor"
+                            d="M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z" />
+                    </svg>
+                </button>
                 <div class="dropdown">
                     <button id="btn-export-menu" class="tool-btn dropdown-toggle" title="Export Options">
                         <svg viewBox="0 0 24 24" width="20" height="20">
@@ -79,7 +85,8 @@
                         </svg>
                     </button>
                     <div id="export-dropdown" class="dropdown-menu">
-                        <button id="btn-export-pdf" class="menu-item">PDF (Image)</button>
+                        <button id="btn-export-png" class="menu-item">PNG Image</button> <!-- New -->
+                        <button id="btn-export-pdf" class="menu-item">PDF (Print)</button>
                         <button id="btn-export-jucm" class="menu-item">jUCM Format</button>
                         <button id="btn-export-d3" class="menu-item">D3.js Data</button>
                         <button id="btn-export-cy" class="menu-item">Cytoscape Data</button>

@@ -33,12 +33,11 @@ class HistoryManager {
             });
         });
 
-        // Listen for file load events to reset history
-        // @agent main - 2026-01-05 - P2.3 implementation
-        graph.on('graph:loaded', ({ clearHistory }) => {
-            if (clearHistory) {
+        // Listen for full graph loads (e.g. from file loader)
+        graph.on('graph:loaded', (data) => {
+            if (data && data.clearHistory) {
                 this.reset();
-                this.saveSnapshot(); // Save initial state after load
+                this.saveSnapshot();
             }
         });
     }

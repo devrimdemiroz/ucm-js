@@ -33,6 +33,11 @@ class UCMTracing {
         console.log(`OpenTelemetry tracing ${enabled ? 'enabled' : 'disabled'}`);
     }
 
+    setCollectorUrl(url) {
+        this.collectorUrl = url;
+        console.log(`OpenTelemetry collector URL set to: ${url}`);
+    }
+
     init() {
         // Start periodic flush of spans
         this.flushInterval = setInterval(() => this.flush(), 3000);

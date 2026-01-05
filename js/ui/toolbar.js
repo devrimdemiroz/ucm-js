@@ -6,6 +6,8 @@ import { selection } from '../editor/selection.js';
 import { canvas } from '../editor/canvas.js';
 import { history } from '../core/history.js';
 import { fileLoader } from '../core/file-loader.js';
+import { validator } from '../core/validator.js';
+import { graph } from '../core/graph.js';
 
 class Toolbar {
     constructor() {
@@ -29,6 +31,8 @@ class Toolbar {
             exportD3: document.getElementById('btn-export-d3'),
             exportCy: document.getElementById('btn-export-cy'),
             exportSVG: document.getElementById('btn-export-svg'),
+            exportPNG: document.getElementById('btn-export-png'),
+            validate: document.getElementById('btn-validate'),
             importJSON: document.getElementById('btn-import-json'),
             fileInput: document.getElementById('file-input')
         };
@@ -67,11 +71,18 @@ class Toolbar {
 
         // Saving and Exporting
         this.buttons.save?.addEventListener('click', () => exporter.exportJSON());
+        this.buttons.exportPNG?.addEventListener('click', () => exporter.exportPNG(2)); // New
         this.buttons.exportPDF?.addEventListener('click', () => exporter.exportPDF());
         this.buttons.exportJUCM?.addEventListener('click', () => exporter.exportJUCM());
         this.buttons.exportD3?.addEventListener('click', () => exporter.exportD3());
         this.buttons.exportCy?.addEventListener('click', () => exporter.exportCytoscape());
         this.buttons.exportSVG?.addEventListener('click', () => exporter.exportSVG());
+
+        this.buttons.validate?.addEventListener('click', () => {
+            const result = validator.validate(graph);
+            const report = validator.generateReport(result);
+            alert(report);
+        });
 
         this.buttons.importJSON?.addEventListener('click', () => {
             this.buttons.fileInput?.click();

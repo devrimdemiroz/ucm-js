@@ -103,7 +103,7 @@ component "Parent" type team at (0, 0) size (800, 600) {
 
 ### Priority 2: HIGH PRIORITY (Week 1)
 
-#### P2.1 - Fix AI Chat Helper Function Usage
+#### P2.1 - Fix AI Chat Helper Function Usage ✅ DONE
 **File**: [js/ui/ai-chat.js:483-484](js/ui/ai-chat.js#L483-L484)
 **Issue**: Helper functions `findNodeByName()` and `findComponentByName()` defined but not used
 
@@ -123,7 +123,7 @@ const matchingNodes = this.findNodeByName(nodeName);
 **Effort**: 20 minutes
 **Impact**: Cleaner code, consistent search behavior
 
-#### P2.2 - Create Graph Constraint Validation System
+#### P2.2 - Create Graph Constraint Validation System ✅ DONE
 **New File**: `js/core/validator.js`
 
 **Features**:
@@ -167,7 +167,7 @@ export class UCMValidator {
 **Effort**: 2-3 hours
 **Test**: Create invalid diagrams, verify validation catches them
 
-#### P2.3 - Fix History Integration with File Loader
+#### P2.3 - Fix History Integration with File Loader ✅ DONE
 **Files**: [js/core/file-loader.js](js/core/file-loader.js), [js/core/history.js](js/core/history.js)
 
 **Issue**: Loading a file clears history, undo broken after load
@@ -191,7 +191,7 @@ export class UCMValidator {
 **Effort**: 1 hour
 **Test**: Load file → Edit → Undo → Verify works correctly
 
-#### P2.4 - Add Missing Export Formats
+#### P2.4 - Add Missing Export Formats ✅ DONE
 **File**: [js/core/exporter.js](js/core/exporter.js)
 
 **Missing Formats**:
@@ -222,7 +222,7 @@ export class UCMValidator {
 **Effort**: 2 hours
 **Test**: Export each format, verify can be opened/imported
 
-#### P2.5 - Implement Keyboard Shortcuts
+#### P2.5 - Implement Keyboard Shortcuts ✅ DONE
 **File**: [js/app.js](js/app.js) (add new module `js/ui/keyboard.js`)
 
 **Shortcuts to Implement**:

@@ -111,18 +111,12 @@ class AIChat {
      * Find element by name (node or component)
      */
     findElementByName(name) {
-        const nameLower = name.toLowerCase();
-
         // Try components first
-        const comp = graph.getAllComponents().find(c =>
-            (c.properties.name || '').toLowerCase() === nameLower
-        );
+        const comp = this.findComponentByName(name);
         if (comp) return { type: 'component', element: comp };
 
         // Try nodes
-        const node = graph.getAllNodes().find(n =>
-            (n.properties.name || '').toLowerCase() === nameLower
-        );
+        const node = this.findNodeByName(name);
         if (node) return { type: 'node', element: node };
 
         return null;
