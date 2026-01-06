@@ -35,19 +35,12 @@ export const parser = {
      */
     validateCoordinates(x, y, lineNum, result, context = 'position') {
         const MAX_COORD = 100000;
+        const MIN_COORD = -100000;
 
-        if (x < 0 || y < 0) {
+        if (x < MIN_COORD || y < MIN_COORD || x > MAX_COORD || y > MAX_COORD) {
             result.errors.push({
                 line: lineNum,
-                message: `Invalid ${context}: negative coordinates (${x}, ${y}) not allowed`
-            });
-            return false;
-        }
-
-        if (x > MAX_COORD || y > MAX_COORD) {
-            result.errors.push({
-                line: lineNum,
-                message: `Invalid ${context}: coordinates (${x}, ${y}) exceed maximum ${MAX_COORD}`
+                message: `Invalid ${context}: coordinates (${x}, ${y}) out of range (${MIN_COORD} to ${MAX_COORD})`
             });
             return false;
         }
