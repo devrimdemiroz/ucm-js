@@ -1,9 +1,35 @@
 /**
  * UCM History Manager - Handles Undo/Redo operations
+ *
+ * P3.4: Event-type-specific debouncing for better UX during rapid operations
+ * - Node dragging: 200ms (frequent position updates)
+ * - Edge drawing: 100ms (moderate frequency)
+ * - Property editing: 300ms (typing in text fields)
+ * - Default: 100ms (for other operations)
  */
 
 import { graph } from './graph.js';
 import { toolbar } from '../ui/toolbar.js';
+
+// Event-type-specific debounce times (in milliseconds)
+// @agent main - 2026-01-06 - P3.4 implementation
+const DEBOUNCE_TIMES = {
+    'node:updated': 200,      // Dragging nodes - needs responsive feel but not too many snapshots
+    'node:added': 100,        // Adding nodes - quick response
+    'node:removed': 100,      // Removing nodes - quick response
+    'edge:added': 100,        // Drawing paths - moderate frequency
+    'edge:updated': 150,      // Updating edge control points
+    'edge:removed': 100,      // Removing edges - quick response
+    'component:added': 100,   // Adding components
+    'component:updated': 200, // Moving/resizing components
+    'component:removed': 100, // Removing components
+    'node:bound': 100,        // Binding nodes to components
+    'node:unbound': 100,      // Unbinding nodes from components
+    'property:updated': 300   // Typing in property fields - longer delay for text input
+};
+
+// Default debounce time for unrecognized events
+const DEFAULT_DEBOUNCE = 100;
 
 class HistoryManager {
     constructor() {
@@ -11,13 +37,16 @@ class HistoryManager {
         this.redoStack = [];
         this.maxHistory = 50;
         this.isExecuting = false; // Flag to prevent event loops during undo/redo
+        this.snapshotTimeout = null;
+        this.lastEventType = null; // Track last event type for debugging
     }
 
     init() {
         // Initial snapshot
         this.saveSnapshot();
 
-        // Listen to graph changes
+        // Listen to graph changes with event-type-specific debouncing
+        // @agent main - 2026-01-06 - P3.4: Pass event type to scheduleSnapshot
         const changeEvents = [
             'node:added', 'node:updated', 'node:removed',
             'edge:added', 'edge:updated', 'edge:removed',
@@ -25,10 +54,10 @@ class HistoryManager {
             'node:bound', 'node:unbound'
         ];
 
-        changeEvents.forEach(event => {
-            graph.on(event, () => {
+        changeEvents.forEach(eventType => {
+            graph.on(eventType, () => {
                 if (!this.isExecuting) {
-                    this.scheduleSnapshot();
+                    this.scheduleSnapshot(eventType);
                 }
             });
         });
@@ -57,14 +86,26 @@ class HistoryManager {
         this.updateUI();
     }
 
-    scheduleSnapshot() {
+    /**
+     * Schedule a snapshot with event-type-specific debounce timing
+     * @param {string} eventType - The type of event that triggered the snapshot
+     * @agent main - 2026-01-06 - P3.4: Event-specific debouncing
+     */
+    scheduleSnapshot(eventType) {
+        // Get debounce time for this event type, or use default
+        const delay = DEBOUNCE_TIMES[eventType] || DEFAULT_DEBOUNCE;
+
+        // Track last event type for debugging
+        this.lastEventType = eventType;
+
+        // Clear any pending snapshot and schedule new one with appropriate delay
         if (this.snapshotTimeout) {
             clearTimeout(this.snapshotTimeout);
         }
         this.snapshotTimeout = setTimeout(() => {
             this.saveSnapshot();
             this.snapshotTimeout = null;
-        }, 50); // 50ms debounce to group cascade updates
+        }, delay);
     }
 
     saveSnapshot() {

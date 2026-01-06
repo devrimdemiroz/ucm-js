@@ -15,6 +15,7 @@ import { canvas } from '../editor/canvas.js';
 import { tracing } from './tracing.js';
 import { parser } from './parser.js';
 import { serializer } from './serializer.js';
+import { notifications } from '../ui/notifications.js';
 
 class FileLoader {
     constructor() {
@@ -64,6 +65,8 @@ class FileLoader {
 
             if (!result.success) {
                 console.warn('Parser errors:', result.errors);
+                const errorCount = result.errors.length;
+                notifications.warning(`File loaded with ${errorCount} parser error${errorCount > 1 ? 's' : ''}`);
             }
 
             // Extract name if possible (parser might not store it on graph yet, but we can verify)
@@ -90,6 +93,7 @@ class FileLoader {
             return true;
         } catch (error) {
             console.error('Failed to load DUCM file:', error);
+            notifications.error('Failed to load file: ' + error.message);
             throw error;
         }
     }

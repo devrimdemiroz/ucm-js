@@ -3,6 +3,7 @@
  */
 
 import { graph } from './graph.js';
+import { notifications } from '../ui/notifications.js';
 
 export const exporter = {
     /**
@@ -20,12 +21,15 @@ export const exporter = {
      */
     exportSVG() {
         const svgElement = document.getElementById('canvas');
-        if (!svgElement) return;
+        if (!svgElement) {
+            notifications.error('Export failed: Canvas element not found');
+            return;
+        }
 
         // Calculate content bounds from graph data (ignores pan/zoom)
         const bounds = this.calculateContentBounds();
         if (!bounds) {
-            alert('Nothing to export - the diagram is empty.');
+            notifications.warning('Nothing to export - the diagram is empty');
             return;
         }
 
@@ -275,12 +279,15 @@ export const exporter = {
      */
     async exportPNG(scale = 2) {
         const svgElement = document.getElementById('canvas');
-        if (!svgElement) return;
+        if (!svgElement) {
+            notifications.error('Export failed: Canvas element not found');
+            return;
+        }
 
         // Calculate content bounds from graph data (ignores pan/zoom)
         const bounds = this.calculateContentBounds();
         if (!bounds) {
-            alert('Nothing to export - the diagram is empty.');
+            notifications.warning('Nothing to export - the diagram is empty');
             return;
         }
 
@@ -371,10 +378,16 @@ export const exporter = {
                 try {
                     const data = JSON.parse(e.target.result);
                     graph.fromJSON(data);
+                    notifications.success('File imported successfully');
                     resolve(true);
                 } catch (err) {
+                    notifications.error('Import failed: ' + err.message);
                     reject(err);
                 }
+            };
+            reader.onerror = () => {
+                notifications.error('Failed to read file');
+                reject(new Error('Failed to read file'));
             };
             reader.readAsText(file);
         });

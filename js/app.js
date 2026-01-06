@@ -18,6 +18,7 @@ import { actionsPanel } from './ui/actions-panel.js';
 import { tracing } from './core/tracing.js';
 import { fileLoader } from './core/file-loader.js';
 import { keyboard } from './ui/keyboard.js';
+import { notifications } from './ui/notifications.js';
 
 class UCMEditor {
     constructor() {
@@ -31,6 +32,9 @@ class UCMEditor {
 
         // Initialize tracing first
         tracing.init();
+
+        // Initialize notification system
+        notifications.init();
 
         // Initialize all modules
         canvas.init();
@@ -73,6 +77,7 @@ class UCMEditor {
             }
         } catch (error) {
             console.warn('Failed to load default example, using fallback demo:', error);
+            notifications.warning('Failed to load default example, using fallback demo');
             this.createFallbackDemo();
         }
     }
@@ -101,6 +106,7 @@ class UCMEditor {
             return true;
         } catch (e) {
             console.error('Failed to import JSON:', e);
+            notifications.error('Failed to import JSON: ' + e.message);
             return false;
         }
     }
@@ -124,3 +130,4 @@ if (document.readyState === 'loading') {
 window.ucmEditor = editor;
 window.ucmGraph = graph;
 window.ucmFileLoader = fileLoader;
+window.ucmNotifications = notifications;

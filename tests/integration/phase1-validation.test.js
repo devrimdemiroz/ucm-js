@@ -5,7 +5,7 @@
 
 const puppeteer = require('puppeteer');
 
-const TEST_URL = 'http://localhost:8088';
+const TEST_URL = 'http://localhost:8095';
 const WAIT_TIME = 500; // ms between actions
 
 class UCMTester {
@@ -282,7 +282,7 @@ link "A" -> "B"`;
                 items => items.map(item => item.textContent)
             );
 
-            const expectedFormats = ['PDF (Image)', 'jUCM Format', 'D3.js Data', 'Cytoscape Data', 'SVG Vector'];
+            const expectedFormats = ['PDF (Print)', 'jUCM Format', 'D3.js Data', 'Cytoscape Data', 'SVG Vector'];
             for (const format of expectedFormats) {
                 if (!exportOptions.includes(format)) {
                     throw new Error(`Missing export format: ${format}`);

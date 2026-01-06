@@ -294,6 +294,15 @@ export function createEdgeSVG(edge, sourceNode, targetNode) {
     const midPoint = getMidpoint(sourcePos, targetPos, edge.controlPoints);
     const angle = getAngle(sourcePos, targetPos, edge.controlPoints);
 
+    // Add invisible wide hit area for easier selection
+    const hitPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    hitPath.setAttribute('d', d);
+    hitPath.setAttribute('fill', 'none');
+    hitPath.setAttribute('stroke', 'transparent');
+    hitPath.setAttribute('stroke-width', '15');
+    hitPath.style.pointerEvents = 'stroke';
+    group.appendChild(hitPath);
+
     path.setAttribute('d', d);
     group.appendChild(path);
 
