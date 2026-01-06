@@ -6,6 +6,7 @@ import { graph } from '../core/graph.js';
 import { canvas } from '../editor/canvas.js';
 import { serializer } from '../core/serializer.js';
 import { parser } from '../core/parser.js';
+import { notifications } from './notifications.js';
 
 class DslPanel {
     constructor() {
@@ -84,21 +85,25 @@ class DslPanel {
             if (result.success) {
                 this.setStatus('Applied', 'success');
                 this.clearErrors();
+                notifications.success('DSL applied successfully');
 
                 // Show warnings if any
                 if (result.warnings.length > 0) {
                     this.showErrors(result.warnings, 'warning');
+                    notifications.warning(`Applied with ${result.warnings.length} warning(s)`);
                 }
 
                 canvas.renderAll();
             } else {
                 this.setStatus(`${result.errors.length} Error(s)`, 'error');
                 this.showErrors(result.errors, 'error');
+                notifications.error(`DSL has ${result.errors.length} error(s) - check the editor for details`);
             }
         } catch (e) {
             console.error(e);
             this.setStatus('Error', 'error');
             this.showErrors([{ line: 1, message: e.message }], 'error');
+            notifications.error('DSL parse error: ' + e.message);
         } finally {
             this.isUpdatingFromGraph = false;
         }
@@ -174,10 +179,16 @@ class DslPanel {
                     this.editor.value = event.target.result;
                     this.setStatus('File Loaded', 'synced');
                     this.clearErrors();
+                    notifications.success(`Loaded: ${file.name}`);
+                };
+                reader.onerror = () => {
+                    this.setStatus('Read Error', 'error');
+                    notifications.error('Failed to read dropped file');
                 };
                 reader.readAsText(file);
             } else {
                 this.setStatus('Invalid file type', 'error');
+                notifications.warning('Invalid file type. Supported: .ducm, .ucm, .txt');
             }
         });
     }

@@ -247,7 +247,8 @@ export function createNodeSVG(node, incomingAngle = null) {
     // Add hit area for easier selection
     const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     hitArea.setAttribute('r', 18);
-    hitArea.setAttribute('fill', 'transparent');
+    hitArea.setAttribute('fill', 'white');
+    hitArea.setAttribute('fill-opacity', '0');
     hitArea.setAttribute('class', 'hit-area');
     g.insertBefore(hitArea, g.firstChild);
 
@@ -298,7 +299,8 @@ export function createEdgeSVG(edge, sourceNode, targetNode) {
     const hitPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     hitPath.setAttribute('d', d);
     hitPath.setAttribute('fill', 'none');
-    hitPath.setAttribute('stroke', 'transparent');
+    hitPath.setAttribute('stroke', 'white');
+    hitPath.setAttribute('stroke-opacity', '0');
     hitPath.setAttribute('stroke-width', '15');
     hitPath.style.pointerEvents = 'stroke';
     group.appendChild(hitPath);

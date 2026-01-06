@@ -10,21 +10,25 @@ No installation required! The editor runs entirely in your browser.
 ---
 
 ## Visual Tour
-
-### Interactive Diagram Editing
-Visualize complex scenarios with clear, high-contrast paths and components. The editor supports drag-and-drop manipulation, path tracing, and real-time updates.
-
-![UCM Editor - Main Interface](docs/images/ucm-dilbert-diagram.png)
-
-### Live DSL Editor
-Define your diagrams declaratively using our simple, readable DSL. The editor provides two-way synchronization between the visual graph and the code.
-
-![UCM DSL Editor](docs/images/ucm-dsl-editor.png)
-
-### Customizable Settings
-Tailor the visual experience with options for grid display, transit map mode, and rendering styles.
-
-![UCM Editor Settings](docs/images/ucm-settings.png)
+ 
+ ### Interactive Diagram Editing
+ Visualize complex scenarios with clear, high-contrast paths and components. The editor supports drag-and-drop manipulation, path tracing, and real-time updates.
+ 
+ **Transit Map Mode (Default)**
+ ![UCM Editor - Transit Mode](docs/images/transit_mode.png)
+ 
+ **Classic UCM Style**
+ ![UCM Editor - Classic Mode](docs/images/classic_mode.png)
+ 
+ ### Live DSL Editor
+ Define your diagrams declaratively using our simple, readable DSL. The editor provides two-way synchronization between the visual graph and the code.
+ 
+ ![UCM DSL Editor](docs/images/ucm-dsl-editor.png)
+ 
+ ### Customizable Settings
+ Tailor the visual experience with options for grid display, transit map mode, and routing styles.
+ 
+ ![UCM Editor Settings](docs/images/ucm-settings.png)
 
 ---
 
