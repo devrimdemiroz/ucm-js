@@ -166,7 +166,8 @@ class SelectionManager {
         document.querySelectorAll('.ucm-node.selected').forEach(el => {
             el.classList.remove('selected');
         });
-        document.querySelectorAll('.ucm-edge.selected').forEach(el => {
+        // Edge groups have class ucm-edge-group, the path inside has ucm-edge
+        document.querySelectorAll('.ucm-edge-group.selected').forEach(el => {
             el.classList.remove('selected');
         });
         document.querySelectorAll('.ucm-component.selected').forEach(el => {

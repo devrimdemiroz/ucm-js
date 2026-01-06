@@ -168,7 +168,7 @@ class DslPanel {
             container.classList.remove('drag-over');
 
             const file = e.dataTransfer.files[0];
-            if (file && (file.name.endsWith('.ucm') || file.name.endsWith('.txt'))) {
+            if (file && (file.name.endsWith('.ducm') || file.name.endsWith('.ucm') || file.name.endsWith('.txt'))) {
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     this.editor.value = event.target.result;

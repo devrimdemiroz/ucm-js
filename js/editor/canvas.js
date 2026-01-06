@@ -413,10 +413,10 @@ class UCMCanvas {
             handle.setAttribute('data-handle-pos', hData.pos);
             handle.setAttribute('x', hData.x);
             handle.setAttribute('y', hData.y);
-            handle.setAttribute('width', 8);
-            handle.setAttribute('height', 8);
-            handle.setAttribute('fill', 'white');
-            handle.setAttribute('stroke', 'black');
+            handle.setAttribute('width', 6);
+            handle.setAttribute('height', 6);
+            handle.setAttribute('fill', '#29b6f6');
+            handle.setAttribute('stroke', 'white');
             handle.setAttribute('stroke-width', '1');
             handle.style.cursor = `${hData.pos}-resize`;
             group.appendChild(handle);

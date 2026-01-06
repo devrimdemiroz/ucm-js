@@ -42,6 +42,12 @@ export const exporter = {
         svgClone.style.transform = 'none';
         svgClone.style.transformOrigin = 'initial';
 
+        // CRITICAL: Also remove the transform from the viewport group (where pan/zoom is applied)
+        const viewport = svgClone.querySelector('#viewport');
+        if (viewport) {
+            viewport.removeAttribute('transform');
+        }
+
         // Remove selection layer from export
         const selectionLayer = svgClone.querySelector('#layer-selection');
         if (selectionLayer) selectionLayer.remove();
@@ -77,6 +83,7 @@ export const exporter = {
     calculateContentBounds() {
         const nodes = graph.getAllNodes();
         const components = graph.getAllComponents();
+        const edges = graph.getAllEdges();
 
         if (nodes.length === 0 && components.length === 0) {
             return null;
@@ -102,6 +109,18 @@ export const exporter = {
             minY = Math.min(minY, b.y);
             maxX = Math.max(maxX, b.x + b.width);
             maxY = Math.max(maxY, b.y + b.height);
+        });
+
+        // Include all edge waypoints/control points
+        edges.forEach(edge => {
+            if (edge.controlPoints && edge.controlPoints.length > 0) {
+                edge.controlPoints.forEach(cp => {
+                    minX = Math.min(minX, cp.x - 5);
+                    minY = Math.min(minY, cp.y - 5);
+                    maxX = Math.max(maxX, cp.x + 5);
+                    maxY = Math.max(maxY, cp.y + 5);
+                });
+            }
         });
 
         return {
@@ -290,6 +309,12 @@ export const exporter = {
         // CRITICAL: Remove the CSS transform (pan/zoom)
         svgClone.style.transform = 'none';
         svgClone.style.transformOrigin = 'initial';
+
+        // CRITICAL: Also remove the transform from the viewport group
+        const viewport = svgClone.querySelector('#viewport');
+        if (viewport) {
+            viewport.removeAttribute('transform');
+        }
 
         // Remove selection layer
         const selectionLayer = svgClone.querySelector('#layer-selection');

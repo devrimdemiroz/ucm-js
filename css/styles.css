@@ -94,9 +94,9 @@
     --edge-color: #000000;
     --edge-hover: #495057;
 
-    /* Selection */
-    --selection-color: #000000;
-    --selection-glow: rgba(0, 0, 0, 0.1);
+    /* Selection - Draw.io style Blue */
+    --selection-color: #29b6f6;
+    --selection-glow: rgba(41, 182, 246, 0.2);
 
     /* Dimensions */
     --panel-width: 260px;
@@ -138,6 +138,8 @@ body {
     flex-direction: column;
     height: 100vh;
     overflow: hidden;
+    /* Prevent default touch actions to help with custom drag */
+    touch-action: none;
 }
 
 /* ============================================
@@ -928,12 +930,15 @@ input:checked+.slider:before {
 .ucm-node.selected polygon {
     stroke: var(--selection-color);
     stroke-width: 2;
-    stroke-dasharray: 2 3;
+    /* Solid line for selection */
+    stroke-dasharray: none;
+    filter: drop-shadow(0 0 2px var(--selection-glow));
 }
 
 /* Specific highlight for responsibility lines/cross */
 .ucm-node.selected.node-responsibility line {
-    stroke-dasharray: 2 2;
+    /* Solid for selected responsibilities too */
+    stroke-dasharray: none;
 }
 
 
@@ -953,8 +958,11 @@ input:checked+.slider:before {
 }
 
 .ucm-edge.selected {
+    stroke: var(--selection-color);
     stroke-width: 3;
-    stroke-dasharray: 4 4;
+    stroke-dasharray: none;
+    /* Solid line */
+    filter: drop-shadow(0 0 2px var(--selection-glow));
 }
 
 /* Waypoint Markers (draw.io style) */
@@ -968,7 +976,8 @@ input:checked+.slider:before {
 }
 
 .ucm-edge-group:hover .waypoint-marker,
-.ucm-edge-group.selected .waypoint-marker {
+.ucm-edge-group.selected .waypoint-marker,
+.ucm-edge.selected~.waypoint-marker {
     opacity: 1;
 }
 
@@ -1083,7 +1092,8 @@ input:checked+.slider:before {
 .ucm-component.selected rect:first-child {
     stroke: var(--selection-color);
     stroke-width: 2;
-    stroke-dasharray: 4 4;
+    /* Solid line for selection */
+    stroke-dasharray: none;
 }
 
 /* ============================================
@@ -1105,6 +1115,9 @@ input:checked+.slider:before {
     transform: translateY(4px);
     transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     backdrop-filter: blur(8px);
+    /* Very small tooltip style */
+    padding: 4px 8px;
+    font-size: 11px;
 }
 
 .custom-tooltip.visible {

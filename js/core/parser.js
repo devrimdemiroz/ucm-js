@@ -183,10 +183,15 @@ export const parser = {
                         x, y
                     });
 
-                    // Specific logic for forks/joins if needed
+                    // Auto-detect fork/join type from name (AND_Fork, OR_Join, etc.)
                     if (type === 'fork' || type === 'join') {
+                        const upperName = name.toUpperCase();
+                        let detectedType = 'or'; // Default to OR
+                        if (upperName.includes('AND')) {
+                            detectedType = 'and';
+                        }
                         graph.updateNode(node.id, {
-                            properties: { ...node.properties, [type + 'Type']: 'and' }
+                            properties: { ...node.properties, [type + 'Type']: detectedType }
                         });
                     }
 
