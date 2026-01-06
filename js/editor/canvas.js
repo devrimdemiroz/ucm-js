@@ -928,15 +928,16 @@ class UCMCanvas {
         e.preventDefault();
 
         const nodeElement = e.target.closest('.ucm-node');
-        const edgeElement = e.target.closest('.ucm-edge');
+        // Edge can be the path itself OR the hit-area path, both are inside ucm-edge-group
+        const edgeGroup = e.target.closest('.ucm-edge-group');
 
         import('./context-menu.js').then(({ contextMenu }) => {
             if (nodeElement) {
                 const nodeId = nodeElement.getAttribute('data-node-id');
                 const node = graph.getNode(nodeId);
                 contextMenu.show(e.clientX, e.clientY, node, null);
-            } else if (edgeElement) {
-                const edgeId = edgeElement.getAttribute('data-edge-id');
+            } else if (edgeGroup) {
+                const edgeId = edgeGroup.getAttribute('data-edge-id');
                 const edge = graph.getEdge(edgeId);
                 contextMenu.show(e.clientX, e.clientY, null, edge);
             }

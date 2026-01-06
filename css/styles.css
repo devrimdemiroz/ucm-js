@@ -1038,6 +1038,12 @@ input:checked+.slider:before {
     text-shadow: 0 0 2px white;
 }
 
+/* Hide labels when setting is off */
+body.hide-labels .node-label,
+body.hide-labels .component-label {
+    display: none;
+}
+
 /* Ghost Elements */
 .ghost-path {
     stroke: var(--text-muted);
