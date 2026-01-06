@@ -26,6 +26,7 @@ class Toolbar {
             zoomIn: document.getElementById('btn-zoom-in'),
             zoomOut: document.getElementById('btn-zoom-out'),
             save: document.getElementById('btn-save'),
+            exportDSL: document.getElementById('btn-export-dsl'),
             exportPDF: document.getElementById('btn-export-pdf'),
             exportJUCM: document.getElementById('btn-export-jucm'),
             exportD3: document.getElementById('btn-export-d3'),
@@ -71,6 +72,7 @@ class Toolbar {
 
         // Saving and Exporting
         this.buttons.save?.addEventListener('click', () => exporter.exportJSON());
+        this.buttons.exportDSL?.addEventListener('click', () => exporter.exportDSL());
         this.buttons.exportPNG?.addEventListener('click', () => exporter.exportPNG(2)); // New
         this.buttons.exportPDF?.addEventListener('click', () => exporter.exportPDF());
         this.buttons.exportJUCM?.addEventListener('click', () => exporter.exportJUCM());

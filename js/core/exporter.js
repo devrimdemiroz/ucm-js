@@ -4,6 +4,7 @@
 
 import { graph } from './graph.js';
 import { notifications } from '../ui/notifications.js';
+import { serializer } from './serializer.js';
 
 export const exporter = {
     /**
@@ -13,6 +14,15 @@ export const exporter = {
         const data = graph.toJSON();
         const json = JSON.stringify(data, null, 2);
         this.downloadFile(json, 'ucm_diagram.json', 'application/json');
+    },
+
+    /**
+     * Export the graph as a DSL (.ducm) file
+     */
+    exportDSL() {
+        const dsl = serializer.serialize(graph);
+        this.downloadFile(dsl, 'ucm_diagram.ducm', 'text/plain');
+        notifications.success('DSL exported');
     },
 
     /**
