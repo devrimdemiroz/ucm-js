@@ -273,14 +273,17 @@
                             <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
                         </marker>
                     </defs>
-                    <!-- Background rect to capture clicks on empty space -->
+                    <!-- Background rect to capture clicks on empty space (stays at SVG root level) -->
                     <rect id="canvas-bg" width="100%" height="100%" fill="transparent" />
-                    <!-- Layers -->
-                    <g id="layer-components"></g>
-                    <g id="layer-edges"></g>
-                    <g id="layer-nodes"></g>
-                    <g id="layer-labels"></g>
-                    <g id="layer-selection"></g>
+                    <!-- Viewport wrapper for zoom/pan transforms -->
+                    <g id="viewport">
+                        <!-- Layers -->
+                        <g id="layer-components"></g>
+                        <g id="layer-edges"></g>
+                        <g id="layer-nodes"></g>
+                        <g id="layer-labels"></g>
+                        <g id="layer-selection"></g>
+                    </g>
                 </svg>
             </div>
         </main>

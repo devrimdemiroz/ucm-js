@@ -129,8 +129,10 @@ export const COMPONENT_TYPES = {
 
 /**
  * Create SVG element for a node based on its type
+ * @param {Object} node - The node object
+ * @param {number} [incomingAngle] - Optional angle (degrees) of the incoming edge for end points
  */
-export function createNodeSVG(node) {
+export function createNodeSVG(node, incomingAngle = null) {
     const typeInfo = NODE_TYPES[node.type];
     if (!typeInfo) return null;
 
@@ -149,13 +151,23 @@ export function createNodeSVG(node) {
             break;
 
         case 'bar':
-            shape = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            shape.setAttribute('x', -typeInfo.width / 2);
-            shape.setAttribute('y', -typeInfo.height / 2);
-            shape.setAttribute('width', typeInfo.width);
-            shape.setAttribute('height', typeInfo.height);
-            shape.setAttribute('rx', 2);
-            shape.setAttribute('fill', typeInfo.color);
+            // Create a group for the bar so we can rotate it
+            shape = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rect.setAttribute('x', -typeInfo.width / 2);
+            rect.setAttribute('y', -typeInfo.height / 2);
+            rect.setAttribute('width', typeInfo.width);
+            rect.setAttribute('height', typeInfo.height);
+            rect.setAttribute('rx', 2);
+            rect.setAttribute('fill', typeInfo.color);
+            shape.appendChild(rect);
+
+            // Rotate the bar to be perpendicular to the incoming edge
+            // The bar is naturally vertical (perpendicular to horizontal/0°)
+            // So we rotate it by the incoming angle
+            if (incomingAngle !== null) {
+                shape.setAttribute('transform', `rotate(${incomingAngle})`);
+            }
             break;
 
         case 'cross':
@@ -539,4 +551,38 @@ export function getNodeConnectionPoint(node, direction = 'out') {
 
     // For now, just return center - can be enhanced for directional connection points
     return { x: pos.x, y: pos.y };
+}
+
+/**
+ * Calculate the incoming angle for a node based on the last segment of incoming edges
+ * Used to rotate end point bars to be perpendicular to the incoming path
+ * @param {Object} node - The target node
+ * @param {Array} inEdges - Array of incoming edge objects
+ * @param {Function} getNode - Function to get a node by ID
+ * @returns {number|null} - Angle in degrees, or null if no incoming edges
+ */
+export function calculateIncomingAngle(node, inEdges, getNode) {
+    if (!inEdges || inEdges.length === 0) return null;
+
+    // Use the first incoming edge (typically end points have only one)
+    const edge = inEdges[0];
+    if (!edge) return null;
+
+    const sourceNode = getNode(edge.sourceNodeId);
+    if (!sourceNode) return null;
+
+    const sourcePos = sourceNode.position;
+    const targetPos = node.position;
+
+    // Calculate angle from last waypoint (or source) to the target
+    let lastPoint = sourcePos;
+    if (edge.controlPoints && edge.controlPoints.length > 0) {
+        lastPoint = edge.controlPoints[edge.controlPoints.length - 1];
+    }
+
+    const dx = targetPos.x - lastPoint.x;
+    const dy = targetPos.y - lastPoint.y;
+
+    // Return angle in degrees
+    return Math.atan2(dy, dx) * 180 / Math.PI;
 }

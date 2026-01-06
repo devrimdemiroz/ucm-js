@@ -3,13 +3,14 @@
  */
 
 import { graph } from '../core/graph.js';
-import { createNodeSVG, createNodeLabel, createEdgeSVG, calculateEdgePath, NODE_TYPES, COMPONENT_TYPES } from '../core/node-types.js';
+import { createNodeSVG, createNodeLabel, createEdgeSVG, calculateEdgePath, NODE_TYPES, COMPONENT_TYPES, calculateIncomingAngle } from '../core/node-types.js';
 import { selection } from './selection.js';
 import { tracing } from '../core/tracing.js';
 
 class UCMCanvas {
     constructor() {
         this.svg = null;
+        this.viewport = null; // The group element that receives zoom/pan transforms
         this.layers = {};
         this.zoom = 1;
         this.pan = { x: 0, y: 0 };
@@ -22,6 +23,7 @@ class UCMCanvas {
 
     init() {
         this.svg = document.getElementById('canvas');
+        this.viewport = document.getElementById('viewport');
         this.layers = {
             components: document.getElementById('layer-components'),
             edges: document.getElementById('layer-edges'),
@@ -119,10 +121,25 @@ class UCMCanvas {
     // ============================================
 
     getSVGPoint(clientX, clientY) {
+        // Use SVG's built-in coordinate transformation for accuracy
+        // This properly accounts for any CSS transforms and SVG viewBox
+        const point = this.svg.createSVGPoint();
+        point.x = clientX;
+        point.y = clientY;
+
+        // Get the inverse of the viewport's transform matrix to convert screen -> world
+        const ctm = this.viewport.getScreenCTM();
+        if (ctm) {
+            const inverted = ctm.inverse();
+            const transformed = point.matrixTransform(inverted);
+            return { x: transformed.x, y: transformed.y };
+        }
+
+        // Fallback if matrix not available
         const rect = this.svg.getBoundingClientRect();
         return {
-            x: (clientX - rect.left) / this.zoom - this.pan.x,
-            y: (clientY - rect.top) / this.zoom - this.pan.y
+            x: (clientX - rect.left - this.pan.x) / this.zoom,
+            y: (clientY - rect.top - this.pan.y) / this.zoom
         };
     }
 
@@ -244,7 +261,14 @@ class UCMCanvas {
             existingLabel.remove();
         }
 
-        const nodeSVG = createNodeSVG(node);
+        // Calculate incoming angle for end nodes (to rotate the bar)
+        let incomingAngle = null;
+        if (node.type === 'end' && node.inEdges && node.inEdges.length > 0) {
+            const inEdges = node.inEdges.map(edgeId => graph.getEdge(edgeId)).filter(e => e);
+            incomingAngle = calculateIncomingAngle(node, inEdges, id => graph.getNode(id));
+        }
+
+        const nodeSVG = createNodeSVG(node, incomingAngle);
         if (nodeSVG) {
             this.layers.nodes.appendChild(nodeSVG);
         }
@@ -257,9 +281,14 @@ class UCMCanvas {
     }
 
     updateNodeRender(node) {
-        const nodeSVG = this.layers.nodes.querySelector(`[data-node-id="${node.id}"]`);
-        if (nodeSVG) {
-            nodeSVG.setAttribute('transform', `translate(${node.position.x}, ${node.position.y})`);
+        // For end nodes, we need to re-render to update bar rotation based on incoming angle
+        if (node.type === 'end') {
+            this.renderNode(node);
+        } else {
+            const nodeSVG = this.layers.nodes.querySelector(`[data-node-id="${node.id}"]`);
+            if (nodeSVG) {
+                nodeSVG.setAttribute('transform', `translate(${node.position.x}, ${node.position.y})`);
+            }
         }
 
         // Update label
@@ -306,6 +335,12 @@ class UCMCanvas {
     updateEdgeRender(edge) {
         // Re-render the whole edge group to update both path and mid-arrow
         this.renderEdge(edge);
+
+        // If target is an end node, re-render it to update bar rotation
+        const targetNode = graph.getNode(edge.targetNodeId);
+        if (targetNode && targetNode.type === 'end') {
+            this.renderNode(targetNode);
+        }
     }
 
     removeEdgeRender(edgeId) {
@@ -1100,20 +1135,22 @@ class UCMCanvas {
     }
 
     updateCanvasTransform() {
-        const container = document.getElementById('canvas-container');
-        // Apply BOTH pan and zoom
-        // Note: transform order matters. Translate first (in screen pixels), then scale?
-        // Actually typically: matrix or translate then scale.
-        // Our pan calculation `Pan = Screen - World * Zoom` assumes:
-        // Screen = World * Zoom + Pan
-        // So visually: Draw at World * Zoom, then translate by Pan.
-        // CSS Transform: translate(pan) scale(zoom) (applied left to right)
-        // If we do translate(tx, ty) scale(s), effective coord is s*x + tx.
-        // Yes.
+        // Apply transform to the viewport group inside the SVG
+        // This is the correct way to implement zoom/pan in SVG - the SVG element stays
+        // at 100% size to catch all mouse events, while the viewport group is transformed
+        // 
+        // Transform order: translate first, then scale
+        // This means: Screen = World * Zoom + Pan
+        if (this.viewport) {
+            this.viewport.setAttribute('transform',
+                `translate(${this.pan.x}, ${this.pan.y}) scale(${this.zoom})`
+            );
+        }
 
-        if (container) {
-            this.svg.style.transform = `translate(${this.pan.x}px, ${this.pan.y}px) scale(${this.zoom})`;
-            this.svg.style.transformOrigin = '0 0'; // Scale from top-left before translation
+        // Clear any legacy CSS transforms on the SVG itself
+        if (this.svg) {
+            this.svg.style.transform = '';
+            this.svg.style.transformOrigin = '';
         }
     }
 

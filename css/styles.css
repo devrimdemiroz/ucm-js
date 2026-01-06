@@ -319,6 +319,8 @@ body {
 #main-content {
     display: flex;
     flex: 1;
+    min-height: 0;
+    /* Critical flexbox fix */
     overflow: hidden;
 }
 
@@ -856,6 +858,10 @@ input:checked+.slider:before {
     flex: 1;
     position: relative;
     overflow: hidden;
+    min-height: 0;
+    /* Critical flexbox fix - allows shrinking */
+    height: 100%;
+    /* Explicit height for SVG sizing */
     background: var(--bg-tertiary);
     /* Subtle dot grid - Strict B&W */
     background-image:
