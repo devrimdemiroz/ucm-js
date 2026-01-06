@@ -163,10 +163,14 @@ export function createNodeSVG(node, incomingAngle = null) {
             shape.appendChild(rect);
 
             // Rotate the bar to be perpendicular to the incoming edge
-            // The bar is naturally vertical (perpendicular to horizontal/0°)
-            // So we rotate it by the incoming angle
+            // The bar is naturally vertical (width=6, height=20)
+            // At 0° (horizontal from left), bar should be vertical (no rotation)
+            // At 90° (coming from top/down), bar should be horizontal (90° rotation)
+            // So rotation = incomingAngle (bar perpendicular to edge direction)
             if (incomingAngle !== null) {
-                shape.setAttribute('transform', `rotate(${incomingAngle})`);
+                // Snap to nearest 45° for cleaner appearance
+                const snappedAngle = Math.round(incomingAngle / 45) * 45;
+                shape.setAttribute('transform', `rotate(${snappedAngle})`);
             }
             break;
 
