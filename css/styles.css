@@ -924,21 +924,42 @@ input:checked+.slider:before {
     stroke-width: 2;
 }
 
-/* Selection Highlight */
+/* Selection Highlight - All Node Types */
 .ucm-node.selected circle,
 .ucm-node.selected rect,
 .ucm-node.selected polygon {
-    stroke: var(--selection-color);
-    stroke-width: 2;
-    /* Solid line for selection */
-    stroke-dasharray: none;
-    filter: drop-shadow(0 0 2px var(--selection-glow));
+    stroke: var(--selection-color) !important;
+    stroke-width: 3 !important;
+    stroke-dasharray: none !important;
+    filter: drop-shadow(0 0 4px var(--selection-color)) drop-shadow(0 0 8px var(--selection-glow)) !important;
 }
 
-/* Specific highlight for responsibility lines/cross */
-.ucm-node.selected.node-responsibility line {
-    /* Solid for selected responsibilities too */
-    stroke-dasharray: none;
+/* Fork/Join AND-bar selection (rect with class ucm-and-bar) */
+.ucm-node.selected .ucm-and-bar {
+    stroke: var(--selection-color) !important;
+    stroke-width: 3 !important;
+    filter: drop-shadow(0 0 6px var(--selection-color)) !important;
+}
+
+/* Fork/Join OR-point selection (circle with class ucm-or-point) */
+.ucm-node.selected .ucm-or-point {
+    stroke: var(--selection-color) !important;
+    stroke-width: 3 !important;
+    filter: drop-shadow(0 0 6px var(--selection-color)) !important;
+}
+
+/* Responsibility X-mark selection - highlight the lines */
+.ucm-node.selected.node-responsibility line.classic-x {
+    stroke: var(--selection-color) !important;
+    stroke-width: 4 !important;
+    filter: drop-shadow(0 0 4px var(--selection-color)) !important;
+}
+
+/* Responsibility transit-station selection */
+.ucm-node.selected.node-responsibility .transit-station {
+    stroke: var(--selection-color) !important;
+    stroke-width: 3 !important;
+    filter: drop-shadow(0 0 4px var(--selection-color)) !important;
 }
 
 
@@ -957,28 +978,41 @@ input:checked+.slider:before {
     stroke-width: 4;
 }
 
+/* Edge selection - applied to the group, style the path inside */
+.ucm-edge-group.selected .ucm-edge,
 .ucm-edge.selected {
-    stroke: var(--selection-color);
-    stroke-width: 3;
-    stroke-dasharray: none;
-    /* Solid line */
-    filter: drop-shadow(0 0 2px var(--selection-glow));
+    stroke: var(--selection-color) !important;
+    stroke-width: 4 !important;
+    stroke-dasharray: none !important;
+    filter: drop-shadow(0 0 4px var(--selection-color)) drop-shadow(0 0 8px var(--selection-glow)) !important;
+}
+
+/* Mid arrow also gets selection color */
+.ucm-edge-group.selected .mid-arrow {
+    fill: var(--selection-color) !important;
 }
 
 /* Waypoint Markers (draw.io style) */
 .waypoint-marker {
-    fill: var(--primary-color, #2196F3);
+    fill: var(--selection-color, #29b6f6);
     stroke: white;
     stroke-width: 2;
     cursor: move;
     opacity: 0;
-    transition: opacity var(--transition-fast), r var(--transition-fast);
+    transition: opacity var(--transition-fast), r var(--transition-fast), fill var(--transition-fast);
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
 }
 
+/* Show waypoints on hover or when selected */
 .ucm-edge-group:hover .waypoint-marker,
-.ucm-edge-group.selected .waypoint-marker,
-.ucm-edge.selected~.waypoint-marker {
-    opacity: 1;
+.ucm-edge-group.selected .waypoint-marker {
+    opacity: 1 !important;
+}
+
+/* Selected waypoints get a brighter highlight */
+.ucm-edge-group.selected .waypoint-marker {
+    fill: var(--selection-color, #29b6f6);
+    r: 6;
 }
 
 .waypoint-marker:hover {
@@ -1232,13 +1266,26 @@ input:checked+.slider:before {
     padding-bottom: 2px;
 }
 
-/* Fork/Join selection highlight - ring effect */
+/* Fork/Join selection highlight - comprehensive coverage */
 .ucm-node.selected.node-fork circle,
-.ucm-node.selected.node-join circle {
-    stroke: var(--selection-color);
-    stroke-width: 3;
-    stroke-dasharray: none;
-    filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.3));
+.ucm-node.selected.node-join circle,
+.ucm-node.selected.node-fork .ucm-or-point,
+.ucm-node.selected.node-join .ucm-or-point {
+    stroke: var(--selection-color) !important;
+    stroke-width: 3 !important;
+    stroke-dasharray: none !important;
+    filter: drop-shadow(0 0 6px var(--selection-color)) !important;
+}
+
+/* Fork/Join AND-bar selection */
+.ucm-node.selected.node-fork .ucm-and-bar,
+.ucm-node.selected.node-join .ucm-and-bar,
+.ucm-node.selected.node-fork rect,
+.ucm-node.selected.node-join rect {
+    stroke: var(--selection-color) !important;
+    stroke-width: 3 !important;
+    stroke-dasharray: none !important;
+    filter: drop-shadow(0 0 6px var(--selection-color)) !important;
 }
 
 /* ============================================
@@ -1273,7 +1320,7 @@ input:checked+.slider:before {
     opacity: 0;
     transform: translateX(100%);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .notification-show {
