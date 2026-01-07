@@ -1,0 +1,57 @@
+ucm "SecuringOTelCollector"
+
+component "InstrumentedApp" type process at (50, 200) size (180, 180) {
+  start "GenerateTraces" at (100, 280)
+  responsibility "SendSpans" at (180, 280)
+}
+
+component "OTel_Agent" type agent at (280, 100) size (280, 380) {
+  responsibility "ReceiveLocal" at (340, 200)
+  responsibility "RequestToken" at (340, 320)
+  responsibility "AttachAuth" at (480, 260)
+  responsibility "TLSEncrypt" at (480, 380)
+}
+
+component "Keycloak" type process at (300, 520) size (240, 160) {
+  responsibility "ValidateCreds" at (360, 580)
+  responsibility "IssueToken" at (480, 580)
+}
+
+component "PublicNetwork" type object at (600, 200) size (120, 280) {
+  responsibility "SecureChannel" at (660, 340)
+}
+
+component "OTel_Collector" type agent at (760, 100) size (300, 400) {
+  responsibility "ReceiveTLS" at (820, 200)
+  responsibility "ValidateToken" at (820, 320)
+  fork "ProcessSpans" at (920, 260)
+  responsibility "DebugExport" at (1000, 180)
+  responsibility "BackendExport" at (1000, 340)
+}
+
+component "Keycloak_OIDC" type process at (780, 540) size (260, 140) {
+  responsibility "VerifyJWT" at (900, 600)
+}
+
+component "TraceBackend" type object at (1100, 250) size (160, 180) {
+  join "CollectTraces" at (1160, 320)
+  end "StoredTraces" at (1160, 380)
+}
+
+link "GenerateTraces" -> "SendSpans"
+link "SendSpans" -> "ReceiveLocal"
+link "ReceiveLocal" -> "RequestToken"
+link "RequestToken" -> "ValidateCreds"
+link "ValidateCreds" -> "IssueToken"
+link "IssueToken" -> "AttachAuth"
+link "AttachAuth" -> "TLSEncrypt"
+link "TLSEncrypt" -> "SecureChannel"
+link "SecureChannel" -> "ReceiveTLS"
+link "ReceiveTLS" -> "ValidateToken"
+link "ValidateToken" -> "VerifyJWT"
+link "VerifyJWT" -> "ProcessSpans"
+link "ProcessSpans" -> "DebugExport"
+link "ProcessSpans" -> "BackendExport"
+link "DebugExport" -> "CollectTraces"
+link "BackendExport" -> "CollectTraces"
+link "CollectTraces" -> "StoredTraces"
