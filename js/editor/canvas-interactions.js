@@ -137,13 +137,15 @@ class CanvasInteractions {
             const edge = graph.getEdge(edgeId);
 
             if (edge && edge.controlPoints && edge.controlPoints[waypointIndex]) {
+                // Select the edge so waypoint markers stay visible and deselection works
+                selection.selectEdge(edgeId);
+
                 this.isDragging = true;
                 this.dragTarget = edgeId;
                 this.dragType = 'waypoint';
                 this.waypointIndex = waypointIndex;
                 this.dragOffset = { x: 0, y: 0 };
                 waypointMarker.classList.add('dragging');
-                edgeGroup.classList.add('selected');
                 return;
             }
         }
