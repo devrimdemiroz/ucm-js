@@ -14,8 +14,10 @@
 }
 
 /* Edge hit area for easier selection */
-.edge-hit-area {
+.edge-hit-area,
+.hit-area {
     fill: none !important;
+    stroke: none !important;
     cursor: pointer;
 }
 
@@ -50,7 +52,7 @@
     display: none;
 }
 
-.transit-mode .node-start circle {
+.transit-mode .node-start circle:not(.hit-area) {
     r: 12;
     fill: #000000;
 }
@@ -914,9 +916,10 @@ input:checked+.slider:before {
 }
 
 /* Functional, B&W Node Styles */
-.node-start circle {
+.node-start circle:not(.hit-area) {
     fill: var(--node-start);
-    stroke: none;
+    stroke: #000;
+    stroke-width: 2;
 }
 
 .node-end rect {
@@ -929,7 +932,7 @@ input:checked+.slider:before {
     stroke-width: 3;
 }
 
-.node-empty circle {
+.node-empty circle:not(.hit-area) {
     fill: var(--node-empty);
     opacity: 0.5;
 }

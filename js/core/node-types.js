@@ -288,6 +288,7 @@ export function createNodeSVG(node, incomingAngle = null) {
     const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     hitArea.setAttribute('r', 24);
     hitArea.setAttribute('fill', 'transparent');
+    hitArea.setAttribute('stroke', 'none');
     hitArea.setAttribute('class', 'hit-area');
     g.insertBefore(hitArea, g.firstChild);
 

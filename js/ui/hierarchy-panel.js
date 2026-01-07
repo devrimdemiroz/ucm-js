@@ -1,25 +1,29 @@
 /**
  * Hierarchy Panel - Tree view of UCM elements organized by paths and components
  *
+ * This is the main orchestrator that:
+ * - Manages panel state (expanded groups, selection)
+ * - Coordinates tree building (hierarchy-tree-builder.js)
+ * - Coordinates rendering (hierarchy-renderer.js)
+ * - Handles events and incremental updates
+ * 
  * Optimized with incremental updates for better performance with large diagrams.
- * Instead of re-rendering the entire tree on every change, we update only the
- * affected elements when possible (10-100x faster for large diagrams).
  */
 
 import { graph } from '../core/graph.js';
 import { selection } from '../editor/selection.js';
-import { NODE_TYPES, COMPONENT_TYPES } from '../core/node-types.js';
+import { buildPathTree, getPathCount, getComponentCount } from './hierarchy-tree-builder.js';
+import {
+    renderPathsSection,
+    renderComponentsSection,
+    renderNodeItem,
+    renderComponentItem
+} from './hierarchy-renderer.js';
 
 class HierarchyPanel {
     constructor() {
         this.container = null;
         this.expandedGroups = new Set(['paths', 'components']);
-        this.visitedNodes = new Set();
-        // Cache for quick DOM element lookups
-        this.nodeElements = new Map();
-        this.componentElements = new Map();
-        // Flag to prevent recursive rendering
-        this.isRendering = false;
     }
 
     init() {
@@ -30,7 +34,7 @@ class HierarchyPanel {
 
     subscribeToEvents() {
         // Incremental updates for node changes
-        graph.on('node:added', (node) => this.addNodeToTree(node));
+        graph.on('node:added', (node) => this.handleNodeAdded(node));
         graph.on('node:updated', (node) => this.updateNodeInTree(node));
         graph.on('node:removed', (data) => this.removeNodeFromTree(data.id));
 
@@ -39,12 +43,12 @@ class HierarchyPanel {
         graph.on('component:updated', (component) => this.updateComponentInTree(component));
         graph.on('component:removed', (data) => this.removeComponentFromTree(data.id));
 
-        // Edge changes may affect path structure - check if re-render needed
-        graph.on('edge:added', (edge) => this.handleEdgeChange(edge, 'added'));
-        graph.on('edge:updated', (edge) => this.handleEdgeChange(edge, 'updated'));
-        graph.on('edge:removed', (data) => this.handleEdgeChange(data, 'removed'));
+        // Edge changes may affect path structure
+        graph.on('edge:added', () => this.render());
+        graph.on('edge:updated', () => this.render());
+        graph.on('edge:removed', () => this.render());
 
-        // Full render only on major changes
+        // Full render on major changes
         graph.on('graph:loaded', () => this.render());
         graph.on('graph:cleared', () => this.render());
 
@@ -54,19 +58,41 @@ class HierarchyPanel {
 
         // Node binding events
         graph.on('node:bound', (data) => this.handleNodeBinding(data));
-        graph.on('node:unbound', (data) => this.handleNodeUnbinding(data));
+        graph.on('node:unbound', () => this.render());
 
         selection.on('selection:changed', () => this.updateSelectionState());
     }
 
     // ============================================
-    // Incremental Node Updates
+    // Full Rendering
     // ============================================
 
-    /**
-     * Add a new node to the tree without full re-render
-     */
-    addNodeToTree(node) {
+    render() {
+        if (!this.container) return;
+
+        const pathTrees = buildPathTree();
+        const components = graph.getAllComponents();
+
+        let html = '';
+
+        // Paths Section
+        html += renderPathsSection(pathTrees, this.expandedGroups);
+
+        // Components Section
+        if (components.length > 0) {
+            html += renderComponentsSection(components, this.expandedGroups);
+        }
+
+        this.container.innerHTML = html;
+        this.attachEventListeners();
+        this.updateSelectionState();
+    }
+
+    // ============================================
+    // Incremental Updates
+    // ============================================
+
+    handleNodeAdded(node) {
         if (!this.container) return;
 
         // Start nodes affect path structure - need full re-render
@@ -75,34 +101,24 @@ class HierarchyPanel {
             return;
         }
 
-        // For non-start nodes, we need to update the paths section count
-        // and potentially add the node to a component's children
-        // Since the node isn't connected yet, it won't appear in paths
-        // But we should update component children if bound
+        // Update component children if bound
         if (node.parentComponent) {
             this.updateComponentChildren(node.parentComponent);
         }
 
-        // Update paths count in header
         this.updatePathsCount();
     }
 
-    /**
-     * Update an existing node in the tree
-     */
     updateNodeInTree(node) {
         if (!this.container) return;
 
-        // Find and update the node element in the DOM
         const nodeElement = this.container.querySelector(`[data-node-id="${node.id}"]`);
         if (nodeElement) {
-            // Update the node's display
-            const newHtml = this.renderNodeItem(node);
+            const newHtml = renderNodeItem(node);
             const temp = document.createElement('div');
             temp.innerHTML = newHtml;
             const newElement = temp.firstElementChild;
 
-            // Preserve selection state
             if (nodeElement.classList.contains('selected')) {
                 newElement.classList.add('selected');
             }
@@ -112,79 +128,53 @@ class HierarchyPanel {
         }
     }
 
-    /**
-     * Remove a node from the tree
-     */
     removeNodeFromTree(nodeId) {
         if (!this.container) return;
 
-        // Find and remove the node element
         const nodeElement = this.container.querySelector(`[data-node-id="${nodeId}"]`);
         if (nodeElement) {
             nodeElement.remove();
         }
-
-        // If this was a start node, path structure changed - full re-render
-        // We can't easily check the node type since it's already removed,
-        // so we check if path structure seems affected
         this.updatePathsCount();
     }
 
-    // ============================================
-    // Incremental Component Updates
-    // ============================================
-
-    /**
-     * Add a new component to the tree
-     */
     addComponentToTree(component) {
         if (!this.container) return;
 
-        // Find the components section
         const componentsChildren = this.container.querySelector('.component-tree');
 
         if (!componentsChildren) {
-            // Components section doesn't exist yet - need to add it
             this.render();
             return;
         }
 
-        // If this is a root component, add to components section
         if (!component.parentComponent) {
-            const componentHtml = this.renderComponentItem(component);
+            const componentHtml = renderComponentItem(component, this.expandedGroups);
             const temp = document.createElement('div');
             temp.innerHTML = componentHtml;
             const newElement = temp.firstElementChild;
             componentsChildren.appendChild(newElement);
             this.attachComponentEventListeners(newElement);
         } else {
-            // Nested component - update parent
             this.updateComponentChildren(component.parentComponent);
         }
 
-        // Update components count
         this.updateComponentsCount();
     }
 
-    /**
-     * Update an existing component in the tree
-     */
     updateComponentInTree(component) {
         if (!this.container) return;
 
         const compElement = this.container.querySelector(`[data-component-id="${component.id}"]`);
         if (compElement) {
-            // Get the parent tree-node div
             const treeNode = compElement.closest('.tree-node');
             if (treeNode) {
-                const newHtml = this.renderComponentItem(component);
+                const newHtml = renderComponentItem(component, this.expandedGroups);
                 const temp = document.createElement('div');
                 temp.innerHTML = newHtml;
                 const newElement = temp.firstElementChild;
 
-                // Preserve selection state
                 const wasSelected = compElement.classList.contains('selected');
-
                 treeNode.replaceWith(newElement);
 
                 if (wasSelected) {
@@ -197,26 +187,19 @@ class HierarchyPanel {
         }
     }
 
-    /**
-     * Remove a component from the tree
-     */
     removeComponentFromTree(componentId) {
         if (!this.container) return;
 
         const compElement = this.container.querySelector(`[data-component-id="${componentId}"]`);
         if (compElement) {
             const treeNode = compElement.closest('.tree-node');
-            if (treeNode) {
-                treeNode.remove();
-            }
+            if (treeNode) treeNode.remove();
         }
 
-        // Update components count
         this.updateComponentsCount();
 
-        // Check if we need to remove the components section entirely
-        const components = graph.getAllComponents();
-        if (components.length === 0) {
+        // Remove components section if empty
+        if (getComponentCount() === 0) {
             const componentsSection = this.container.querySelector('[data-group="components"]');
             if (componentsSection) {
                 const sectionNode = componentsSection.closest('.tree-node');
@@ -225,386 +208,43 @@ class HierarchyPanel {
         }
     }
 
-    /**
-     * Update a component's children display
-     */
     updateComponentChildren(componentId) {
         const component = graph.getComponent(componentId);
-        if (!component) return;
-
-        // Re-render just this component
-        this.updateComponentInTree(component);
+        if (component) {
+            this.updateComponentInTree(component);
+        }
     }
 
-    // ============================================
-    // Edge Change Handling
-    // ============================================
-
-    /**
-     * Handle edge changes - determine if path structure is affected
-     */
-    handleEdgeChange(data, changeType) {
-        // Edge changes can affect the path tree structure
-        // For now, we do a full re-render since paths are built by tracing edges
-        // A more sophisticated approach could check if the change affects visible paths
-        this.render();
-    }
-
-    // ============================================
-    // Node Binding Handling
-    // ============================================
-
-    /**
-     * Handle node being bound to a component
-     */
     handleNodeBinding(data) {
         const { nodeId, componentId } = data;
-
-        // Update the node display to show pin icon
         const node = graph.getNode(nodeId);
         if (node) {
             this.updateNodeInTree(node);
         }
-
-        // Update component's children list
         this.updateComponentChildren(componentId);
-    }
-
-    /**
-     * Handle node being unbound from a component
-     */
-    handleNodeUnbinding(data) {
-        const { nodeId } = data;
-
-        // Update the node display to remove pin icon
-        const node = graph.getNode(nodeId);
-        if (node) {
-            this.updateNodeInTree(node);
-        }
-
-        // Note: We don't have the old componentId, so we do a render
-        // to ensure component children are updated correctly
-        this.render();
     }
 
     // ============================================
     // Count Updates
     // ============================================
 
-    /**
-     * Update the paths count in the header
-     */
     updatePathsCount() {
         const pathsHeader = this.container?.querySelector('[data-group="paths"] .tree-label');
         if (pathsHeader) {
-            const startNodes = graph.getAllNodes().filter(n => n.type === 'start');
-            pathsHeader.textContent = `Paths (${startNodes.length})`;
+            pathsHeader.textContent = `Paths (${getPathCount()})`;
         }
     }
 
-    /**
-     * Update the components count in the header
-     */
     updateComponentsCount() {
         const componentsHeader = this.container?.querySelector('[data-group="components"] .tree-label');
         if (componentsHeader) {
-            const components = graph.getAllComponents();
-            componentsHeader.textContent = `Components (${components.length})`;
+            componentsHeader.textContent = `Components (${getComponentCount()})`;
         }
     }
 
     // ============================================
-    // Event Listener Attachment
+    // Event Listeners
     // ============================================
-
-    /**
-     * Attach event listener to a single node element
-     */
-    attachNodeEventListener(element, nodeId) {
-        element.addEventListener('click', (e) => {
-            e.stopPropagation();
-            selection.selectNode(nodeId);
-
-            import('../editor/canvas.js').then(({ canvas }) => {
-                canvas.centerOnNode(nodeId);
-            });
-        });
-    }
-
-    /**
-     * Attach event listeners to a component element and its children
-     */
-    attachComponentEventListeners(element) {
-        // Toggle for this component
-        const toggle = element.querySelector('.tree-toggle');
-        if (toggle) {
-            toggle.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const item = toggle.closest('.tree-item');
-                const compId = item?.dataset.componentId;
-                if (compId) {
-                    const groupId = `comp_${compId}`;
-                    if (this.expandedGroups.has(groupId)) {
-                        this.expandedGroups.delete(groupId);
-                    } else {
-                        this.expandedGroups.add(groupId);
-                    }
-                    this.render();
-                }
-            });
-        }
-
-        // Component selection
-        const compItem = element.querySelector('[data-component-id]');
-        if (compItem) {
-            const compId = compItem.dataset.componentId;
-            compItem.addEventListener('click', (e) => {
-                e.stopPropagation();
-                selection.selectComponent(compId);
-
-                import('../editor/canvas.js').then(({ canvas }) => {
-                    canvas.centerOnComponent(compId);
-                });
-            });
-        }
-
-        // Child nodes
-        element.querySelectorAll('[data-node-id]').forEach(nodeItem => {
-            const nodeId = nodeItem.dataset.nodeId;
-            this.attachNodeEventListener(nodeItem, nodeId);
-        });
-
-        // Nested components
-        element.querySelectorAll('.tree-node').forEach(nestedNode => {
-            if (nestedNode !== element) {
-                this.attachComponentEventListeners(nestedNode);
-            }
-        });
-    }
-
-    /**
-     * Build a recursive path tree from start nodes
-     */
-    buildPathTree() {
-        const startNodes = graph.getAllNodes().filter(n => n.type === 'start');
-
-        return startNodes.map((startNode, index) => {
-            this.visitedNodes.clear();
-            return {
-                id: `root_path_${index}`,
-                name: startNode.properties.name || `Path ${index + 1}`,
-                startNode: startNode,
-                children: this.traceSegment(startNode)
-            };
-        });
-    }
-
-    /**
-     * Recursive function to trace graph segments
-     * Returns an array of node items and nested sub-paths (branches)
-     */
-    traceSegment(startNode) {
-        const result = [];
-        let current = startNode;
-
-        while (current) {
-            // Prevent infinite loops
-            if (this.visitedNodes.has(current.id)) {
-                result.push({ type: 'ref', node: current, label: `(Loop to ${current.properties.name})` });
-                break;
-            }
-            this.visitedNodes.add(current.id);
-
-            // Add current node to list
-            result.push({ type: 'node', node: current });
-
-            // Check outgoing edges
-            const outEdges = [...current.outEdges];
-
-            if (outEdges.length === 0) {
-                // End of path
-                break;
-            } else if (outEdges.length === 1) {
-                // Linear flow
-                const edge = graph.getEdge(outEdges[0]);
-                current = edge ? graph.getNode(edge.targetNodeId) : null;
-            } else {
-                // Forking logic (DAG split)
-                // We stop the linear segment here and add children branches
-                outEdges.forEach((edgeId, idx) => {
-                    const edge = graph.getEdge(edgeId);
-                    if (edge) {
-                        const targetNode = graph.getNode(edge.targetNodeId);
-                        if (targetNode) {
-                            result.push({
-                                type: 'branch',
-                                name: `Branch ${idx + 1}`,
-                                id: `branch_${current.id}_${idx}`,
-                                children: this.traceSegment(targetNode)
-                            });
-                        }
-                    }
-                });
-                break; // Stop linear trace after split
-            }
-        }
-        return result;
-    }
-
-    render() {
-        if (!this.container) return;
-
-        // Prevent recursive rendering
-        if (this.isRendering) return;
-        this.isRendering = true;
-
-        try {
-            const pathTrees = this.buildPathTree();
-            const components = graph.getAllComponents();
-
-            let html = '';
-
-            // --- Paths Section ---
-            const pathsExpanded = this.expandedGroups.has('paths');
-            html += `
-                <div class="tree-node">
-                    <div class="tree-item" data-group="paths">
-                        <span class="tree-toggle ${pathsExpanded ? 'expanded' : ''}">▶</span>
-                        <span class="tree-icon">⟶</span>
-                        <span class="tree-label">Paths (${pathTrees.length})</span>
-                    </div>
-                    <div class="tree-children ${pathsExpanded ? '' : 'collapsed'}">
-            `;
-
-            pathTrees.forEach(tree => {
-                html += this.renderPathTreeItem(tree);
-            });
-
-            html += `   </div>
-                </div>`;
-
-            // --- Components Section ---
-            if (components.length > 0) {
-                html += this.renderComponentsGroup(components);
-            }
-
-            this.container.innerHTML = html;
-            this.attachEventListeners();
-            this.updateSelectionState(true); // Skip triggering re-render from selection
-        } finally {
-            this.isRendering = false;
-        }
-    }
-
-    renderPathTreeItem(item) {
-        // If it's a branch/root container
-        if (item.startNode || item.type === 'branch') {
-            const isExpanded = this.expandedGroups.has(item.id);
-            const isBranch = item.type === 'branch';
-
-            let html = `
-                <div class="tree-node ${isBranch ? 'branch-node' : ''}">
-                    <div class="tree-item" data-group="${item.id}">
-                        <span class="tree-toggle ${isExpanded ? 'expanded' : ''}">▶</span>
-                        <span class="tree-icon">${isBranch ? '⑂' : '●'}</span>
-                        <span class="tree-label">${item.name}</span>
-                    </div>
-                    <div class="tree-children ${isExpanded ? '' : 'collapsed'}">
-            `;
-
-            // Render children
-            item.children.forEach(child => {
-                html += this.renderPathTreeItem(child);
-            });
-
-            html += `</div></div>`;
-            return html;
-        }
-
-        // If it's a leaf node reference
-        if (item.type === 'node') {
-            return this.renderNodeItem(item.node);
-        }
-
-        // Loop reference
-        if (item.type === 'ref') {
-            return `
-                <div class="tree-item disabled">
-                    <span class="tree-icon">↺</span>
-                    <span class="tree-label">${item.label}</span>
-                </div>`;
-        }
-
-        return '';
-    }
-
-    renderNodeItem(node) {
-        const typeInfo = NODE_TYPES[node.type];
-        const parentComp = node.parentComponent ? graph.getComponent(node.parentComponent) : null;
-        const pinnedInfo = parentComp ? `<span class="node-pinned" title="Pinned to ${parentComp.properties.name}">📌</span>` : '';
-
-        return `
-            <div class="tree-item" data-node-id="${node.id}">
-                <!-- Invisible toggle for alignment with branched items if needed, or remove -->
-                <span class="tree-toggle" style="visibility: hidden;">▶</span>
-                <span class="tree-icon ${node.type}">${typeInfo?.icon || '•'}</span>
-                <span class="tree-label">${node.properties.name || node.id}</span>
-                ${pinnedInfo}
-            </div>
-        `;
-    }
-
-    renderComponentsGroup(components) {
-        const isExpanded = this.expandedGroups.has('components');
-        const rootComponents = components.filter(c => !c.parentComponent);
-
-        let html = `
-            <div class="tree-node">
-                <div class="tree-item" data-group="components">
-                    <span class="tree-toggle ${isExpanded ? 'expanded' : ''}">▶</span>
-                    <span class="tree-icon component">□</span>
-                    <span class="tree-label">Components (${components.length})</span>
-                </div>
-                <div class="tree-children component-tree ${isExpanded ? '' : 'collapsed'}">
-        `;
-
-        rootComponents.forEach(comp => {
-            html += this.renderComponentItem(comp);
-        });
-
-        html += `   </div>
-            </div>`;
-
-        return html;
-    }
-
-    renderComponentItem(comp) {
-        const typeInfo = COMPONENT_TYPES[comp.type];
-        const childNodes = [...comp.childNodes].map(id => graph.getNode(id)).filter(Boolean);
-        const childComps = comp.childComponents ? [...comp.childComponents].map(id => graph.getComponent(id)).filter(Boolean) : [];
-        const hasChildren = childNodes.length > 0 || childComps.length > 0;
-        const compExpanded = this.expandedGroups.has(`comp_${comp.id}`);
-
-        let html = `
-            <div class="tree-node">
-                <div class="tree-item" data-component-id="${comp.id}">
-                    <span class="tree-toggle ${hasChildren ? (compExpanded ? 'expanded' : '') : ''}"
-                          style="${hasChildren ? '' : 'visibility: hidden;'}">▶</span>
-                    <span class="tree-icon component">${typeInfo?.icon || '□'}</span>
-                    <span class="tree-label">${comp.properties.name}</span>
-                </div>
-        `;
-
-        if (hasChildren) {
-            html += `<div class="tree-children ${compExpanded ? '' : 'collapsed'}">`;
-            childComps.forEach(childComp => html += this.renderComponentItem(childComp));
-            childNodes.forEach(node => html += this.renderNodeItem(node));
-            html += `</div>`;
-        }
-
-        html += `</div>`;
-        return html;
-    }
 
     attachEventListeners() {
         // Toggle groups
@@ -626,28 +266,17 @@ class HierarchyPanel {
             });
         });
 
-        // Select nodes - Centers graph on node
+        // Select nodes
         this.container.querySelectorAll('.tree-item[data-node-id]').forEach(item => {
-            item.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const nodeId = item.dataset.nodeId;
-                selection.selectNode(nodeId);
-
-                // Bulls Eye: Center graph on node
-                import('../editor/canvas.js').then(({ canvas }) => {
-                    canvas.centerOnNode(nodeId);
-                });
-            });
+            this.attachNodeEventListener(item, item.dataset.nodeId);
         });
 
-        // Select components - Centers graph on component
+        // Select components
         this.container.querySelectorAll('.tree-item[data-component-id]').forEach(item => {
+            const compId = item.dataset.componentId;
             item.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const compId = item.dataset.componentId;
                 selection.selectComponent(compId);
-
-                // Bulls Eye: Center graph on component
                 import('../editor/canvas.js').then(({ canvas }) => {
                     canvas.centerOnComponent(compId);
                 });
@@ -655,30 +284,75 @@ class HierarchyPanel {
         });
     }
 
-    updateSelectionState(skipRender = false) {
-        this.container?.querySelectorAll('.tree-item.selected').forEach(item => item.classList.remove('selected'));
+    attachNodeEventListener(element, nodeId) {
+        element.addEventListener('click', (e) => {
+            e.stopPropagation();
+            selection.selectNode(nodeId);
+            import('../editor/canvas.js').then(({ canvas }) => {
+                canvas.centerOnNode(nodeId);
+            });
+        });
+    }
+
+    attachComponentEventListeners(element) {
+        const toggle = element.querySelector('.tree-toggle');
+        if (toggle) {
+            toggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const item = toggle.closest('.tree-item');
+                const compId = item?.dataset.componentId;
+                if (compId) {
+                    const groupId = `comp_${compId}`;
+                    if (this.expandedGroups.has(groupId)) {
+                        this.expandedGroups.delete(groupId);
+                    } else {
+                        this.expandedGroups.add(groupId);
+                    }
+                    this.render();
+                }
+            });
+        }
+
+        const compItem = element.querySelector('[data-component-id]');
+        if (compItem) {
+            const compId = compItem.dataset.componentId;
+            compItem.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selection.selectComponent(compId);
+                import('../editor/canvas.js').then(({ canvas }) => {
+                    canvas.centerOnComponent(compId);
+                });
+            });
+        }
+
+        element.querySelectorAll('[data-node-id]').forEach(nodeItem => {
+            this.attachNodeEventListener(nodeItem, nodeItem.dataset.nodeId);
+        });
+
+        element.querySelectorAll('.tree-node').forEach(nestedNode => {
+            if (nestedNode !== element) {
+                this.attachComponentEventListeners(nestedNode);
+            }
+        });
+    }
+
+    // ============================================
+    // Selection State
+    // ============================================
+
+    updateSelectionState() {
+        this.container?.querySelectorAll('.tree-item.selected').forEach(item => {
+            item.classList.remove('selected');
+        });
 
         let firstSelectedItem = null;
-        let needsRender = false;
 
         selection.selectedNodes.forEach(nodeId => {
             const node = graph.getNode(nodeId);
             if (!node) return;
 
-            // Check if we need to expand groups to reveal the node (only if not skipping render)
-            if (!skipRender) {
-                // Expand paths if it belongs to a path
-                if (this.revealNodeInPathTree(nodeId, true)) {
-                    needsRender = true;
-                }
-
-                // Expand components if it's pinned
-                if (node.parentComponent) {
-                    if (this.revealComponentInTree(node.parentComponent, true)) {
-                        needsRender = true;
-                    }
-                }
-            }
+            // Expand parents to reveal node
+            this.revealNodeInTree(nodeId);
 
             const item = this.container?.querySelector(`[data-node-id="${nodeId}"]`);
             if (item) {
@@ -688,18 +362,8 @@ class HierarchyPanel {
         });
 
         selection.selectedComponents.forEach(compId => {
-            // Expand parent components if needed (only if not skipping render)
-            if (!skipRender) {
-                let current = graph.getComponent(compId);
-                while (current && current.parentComponent) {
-                    const groupId = `comp_${current.parentComponent}`;
-                    if (!this.expandedGroups.has(groupId)) {
-                        this.expandedGroups.add(groupId);
-                        needsRender = true;
-                    }
-                    current = graph.getComponent(current.parentComponent);
-                }
-            }
+            // Expand parent components
+            this.revealComponentInTree(compId);
 
             const item = this.container?.querySelector(`[data-component-id="${compId}"]`);
             if (item) {
@@ -708,57 +372,26 @@ class HierarchyPanel {
             }
         });
 
-        // If we expanded groups, re-render once (only if not already rendering)
-        if (needsRender && !skipRender) {
-            this.render();
-        }
-
-        // Scroll into view (Bulls Eye: Canvas -> Hierarchy)
+        // Scroll into view
         if (firstSelectedItem) {
             firstSelectedItem.scrollIntoView({ block: 'center', behavior: 'smooth' });
         }
     }
 
-    /**
-     * Reveal a node in the path tree by expanding the paths group
-     * @param {string} nodeId - The node to reveal
-     * @param {boolean} deferRender - If true, don't render immediately, just return if changes were made
-     * @returns {boolean} True if groups were expanded
-     */
-    revealNodeInPathTree(nodeId, deferRender = false) {
-        let changed = false;
-
+    revealNodeInTree(nodeId) {
         if (!this.expandedGroups.has('paths')) {
             this.expandedGroups.add('paths');
-            changed = true;
-        }
-
-        // For now, we just ensure paths are expanded.
-        // More sophisticated expansion (finding which branch contains the node) 
-        // could be added but is complex without a reverse lookup.
-
-        if (changed && !deferRender) {
             this.render();
         }
-
-        return changed;
     }
 
-    /**
-     * Reveal a component by expanding its parent chain
-     * @param {string} compId - The component to reveal
-     * @param {boolean} deferRender - If true, don't render immediately, just return if changes were made
-     * @returns {boolean} True if groups were expanded
-     */
-    revealComponentInTree(compId, deferRender = false) {
-        let changed = false;
-
+    revealComponentInTree(compId) {
         if (!this.expandedGroups.has('components')) {
             this.expandedGroups.add('components');
-            changed = true;
         }
 
         let current = graph.getComponent(compId);
+        let changed = false;
         while (current) {
             const groupId = `comp_${current.id}`;
             if (!this.expandedGroups.has(groupId)) {
@@ -768,11 +401,7 @@ class HierarchyPanel {
             current = current.parentComponent ? graph.getComponent(current.parentComponent) : null;
         }
 
-        if (changed && !deferRender) {
-            this.render();
-        }
-
-        return changed;
+        if (changed) this.render();
     }
 }
 

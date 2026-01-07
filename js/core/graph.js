@@ -112,6 +112,26 @@ export class UCMGraph {
         const node = this.nodes.get(id);
         if (!node) return false;
 
+        // Path Healing: If node has exactly one in-edge and one out-edge, connect them
+        if (node.inEdges.length === 1 && node.outEdges.length === 1) {
+            const inEdge = this.edges.get(node.inEdges[0]);
+            const outEdge = this.edges.get(node.outEdges[0]);
+
+            if (inEdge && outEdge) {
+                const sourceId = inEdge.sourceNodeId;
+                const targetId = outEdge.targetNodeId;
+
+                // Merge control points (waypoints) if any
+                const controlPoints = [
+                    ...(inEdge.controlPoints || []),
+                    { x: node.position.x, y: node.position.y }, // Keep deleted node's position as a waypoint
+                    ...(outEdge.controlPoints || [])
+                ];
+
+                this.addEdge(sourceId, targetId, { controlPoints });
+            }
+        }
+
         // Remove connected edges
         [...node.inEdges, ...node.outEdges].forEach(edgeId => {
             this.removeEdge(edgeId);
