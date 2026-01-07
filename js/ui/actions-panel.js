@@ -110,14 +110,21 @@ class ActionsPanel {
         if (node.outEdges.size > 0 && node.type !== 'end') {
             actions.push({
                 id: 'insert-resp-after',
-                label: 'Insert Responsibility After',
+                label: 'Insert Responsibility',
                 icon: '✕',
                 category: 'Insert',
                 tooltip: 'Add a responsibility node after this one'
             });
             actions.push({
+                id: 'insert-timer-after',
+                label: 'Insert Timer',
+                icon: '⏰',
+                category: 'Insert',
+                tooltip: 'Add a timer after this one'
+            });
+            actions.push({
                 id: 'insert-empty-after',
-                label: 'Insert Waypoint After',
+                label: 'Insert Waypoint',
                 icon: '○',
                 category: 'Insert',
                 tooltip: 'Add an empty waypoint after this node'
@@ -127,7 +134,7 @@ class ActionsPanel {
         if (node.inEdges.size > 0 && node.type !== 'start') {
             actions.push({
                 id: 'insert-resp-before',
-                label: 'Insert Responsibility Before',
+                label: 'Insert Resp. Before',
                 icon: '✕',
                 category: 'Insert',
                 tooltip: 'Add a responsibility node before this one'
@@ -141,6 +148,12 @@ class ActionsPanel {
                     id: 'convert-to-resp',
                     label: 'Convert to Responsibility',
                     icon: '✕',
+                    category: 'Convert'
+                });
+                actions.push({
+                    id: 'convert-to-timer',
+                    label: 'Convert to Timer',
+                    icon: '⏰',
                     category: 'Convert'
                 });
                 actions.push({
@@ -432,16 +445,25 @@ class ActionsPanel {
             case 'insert-resp-after':
                 if (node) this.insertNodeAfter(node, 'responsibility');
                 break;
+            case 'insert-timer-after':
+                if (node) this.insertNodeAfter(node, 'timer');
+                break;
             case 'insert-empty-after':
                 if (node) this.insertNodeAfter(node, 'empty');
                 break;
             case 'insert-resp-before':
                 if (node) this.insertNodeBefore(node, 'responsibility');
                 break;
+            case 'insert-timer-before':
+                if (node) this.insertNodeBefore(node, 'timer');
+                break;
 
             // Node conversion actions
             case 'convert-to-resp':
                 if (node) graph.updateNode(node.id, { type: 'responsibility' });
+                break;
+            case 'convert-to-timer':
+                if (node) graph.updateNode(node.id, { type: 'timer' });
                 break;
             case 'convert-to-empty':
                 if (node) graph.updateNode(node.id, { type: 'empty' });
@@ -471,6 +493,9 @@ class ActionsPanel {
             // Edge actions
             case 'insert-resp-on-edge':
                 if (edge) this.insertNodeOnEdge(edge, 'responsibility');
+                break;
+            case 'insert-timer-on-edge':
+                if (edge) this.insertNodeOnEdge(edge, 'timer');
                 break;
             case 'insert-waypoint-on-edge':
                 if (edge) this.insertNodeOnEdge(edge, 'empty');

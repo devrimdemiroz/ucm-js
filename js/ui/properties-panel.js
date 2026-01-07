@@ -153,6 +153,18 @@ class PropertiesPanel {
                 </div>` : ''}
             </div>` : ''}
 
+            <!-- Timer Properties -->
+            ${editableFields.includes('timeout') ? `
+            <div class="property-group">
+                <div class="property-group-header">Timer Settings</div>
+                <div class="property-row">
+                    <label class="property-label">Timeout</label>
+                    <div class="property-value">
+                        <input type="text" class="property-input" id="prop-timeout" value="${this.escapeHtml(node.properties.timeout || '')}" placeholder="e.g. 100ms">
+                    </div>
+                </div>
+            </div>` : ''}
+
             <!-- Position & Layout -->
             <div class="property-group">
                 <div class="property-group-header">Layout</div>
@@ -414,6 +426,14 @@ class PropertiesPanel {
         if (postInput) {
             postInput.addEventListener('change', () => {
                 graph.updateNode(nodeId, { properties: { postcondition: postInput.value } });
+            });
+        }
+
+        // Timeout
+        const timeoutInput = document.getElementById('prop-timeout');
+        if (timeoutInput) {
+            timeoutInput.addEventListener('change', () => {
+                graph.updateNode(nodeId, { properties: { timeout: timeoutInput.value } });
             });
         }
 

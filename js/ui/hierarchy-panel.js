@@ -18,6 +18,8 @@ class HierarchyPanel {
         // Cache for quick DOM element lookups
         this.nodeElements = new Map();
         this.componentElements = new Map();
+        // Flag to prevent recursive rendering
+        this.isRendering = false;
     }
 
     init() {
@@ -452,38 +454,46 @@ class HierarchyPanel {
     render() {
         if (!this.container) return;
 
-        const pathTrees = this.buildPathTree();
-        const components = graph.getAllComponents();
+        // Prevent recursive rendering
+        if (this.isRendering) return;
+        this.isRendering = true;
 
-        let html = '';
+        try {
+            const pathTrees = this.buildPathTree();
+            const components = graph.getAllComponents();
 
-        // --- Paths Section ---
-        const pathsExpanded = this.expandedGroups.has('paths');
-        html += `
-            <div class="tree-node">
-                <div class="tree-item" data-group="paths">
-                    <span class="tree-toggle ${pathsExpanded ? 'expanded' : ''}">▶</span>
-                    <span class="tree-icon">⟶</span>
-                    <span class="tree-label">Paths (${pathTrees.length})</span>
-                </div>
-                <div class="tree-children ${pathsExpanded ? '' : 'collapsed'}">
-        `;
+            let html = '';
 
-        pathTrees.forEach(tree => {
-            html += this.renderPathTreeItem(tree);
-        });
+            // --- Paths Section ---
+            const pathsExpanded = this.expandedGroups.has('paths');
+            html += `
+                <div class="tree-node">
+                    <div class="tree-item" data-group="paths">
+                        <span class="tree-toggle ${pathsExpanded ? 'expanded' : ''}">▶</span>
+                        <span class="tree-icon">⟶</span>
+                        <span class="tree-label">Paths (${pathTrees.length})</span>
+                    </div>
+                    <div class="tree-children ${pathsExpanded ? '' : 'collapsed'}">
+            `;
 
-        html += `   </div>
-            </div>`;
+            pathTrees.forEach(tree => {
+                html += this.renderPathTreeItem(tree);
+            });
 
-        // --- Components Section ---
-        if (components.length > 0) {
-            html += this.renderComponentsGroup(components);
+            html += `   </div>
+                </div>`;
+
+            // --- Components Section ---
+            if (components.length > 0) {
+                html += this.renderComponentsGroup(components);
+            }
+
+            this.container.innerHTML = html;
+            this.attachEventListeners();
+            this.updateSelectionState(true); // Skip triggering re-render from selection
+        } finally {
+            this.isRendering = false;
         }
-
-        this.container.innerHTML = html;
-        this.attachEventListeners();
-        this.updateSelectionState();
     }
 
     renderPathTreeItem(item) {
@@ -645,41 +655,29 @@ class HierarchyPanel {
         });
     }
 
-    updateSelectionState() {
+    updateSelectionState(skipRender = false) {
         this.container?.querySelectorAll('.tree-item.selected').forEach(item => item.classList.remove('selected'));
 
         let firstSelectedItem = null;
+        let needsRender = false;
 
         selection.selectedNodes.forEach(nodeId => {
-            // Find the item. It might be inside a collapsed group.
-            // But currently, we only render what is expanded (mostly).
-            // Actually, if we want to "reveal" hidden items, we need to know their path and expand it.
-            // The current rendering logic only renders *children* of expanded groups.
-            // So if a parent is collapsed, the DOM element doesn't exist.
-
-            // To fix this properly, we need to find the "path" to the node in the tree structure
-            // and expand all parents. Since we don't have a quick lookup here, 
-            // we might relying on the fact that 'paths' and 'components' are usually top level.
-            // For now, let's try to highlight if visible. 
-            // Robust auto-expansion would require traversing the text-model or graph to find parents.
-            // The 'traceSegment' builds the tree.
-
-            // For Components, we can climb the parentComponent chain easily.
-            // For Nodes, we need to know which path they belong to.
-            // This is harder because a node can be in multiple paths (shared segments).
-
-            // AUTO-EXPANSION LOGIC (Simplified for now: expand parents if we can infer them)
-            // For components:
             const node = graph.getNode(nodeId);
             if (!node) return;
 
-            // Expand parents in Hierarchy tree to reveal the selected node
-            // 1. Expand paths if it belongs to a path
-            this.revealNodeInPathTree(nodeId);
+            // Check if we need to expand groups to reveal the node (only if not skipping render)
+            if (!skipRender) {
+                // Expand paths if it belongs to a path
+                if (this.revealNodeInPathTree(nodeId, true)) {
+                    needsRender = true;
+                }
 
-            // 2. Expand components if it's pinned
-            if (node.parentComponent) {
-                this.revealComponentInTree(node.parentComponent);
+                // Expand components if it's pinned
+                if (node.parentComponent) {
+                    if (this.revealComponentInTree(node.parentComponent, true)) {
+                        needsRender = true;
+                    }
+                }
             }
 
             const item = this.container?.querySelector(`[data-node-id="${nodeId}"]`);
@@ -690,18 +688,18 @@ class HierarchyPanel {
         });
 
         selection.selectedComponents.forEach(compId => {
-            // Expand parent components if needed
-            let current = graph.getComponent(compId);
-            let needsRender = false;
-            while (current && current.parentComponent) {
-                const groupId = `comp_${current.parentComponent}`;
-                if (!this.expandedGroups.has(groupId)) {
-                    this.expandedGroups.add(groupId);
-                    needsRender = true;
+            // Expand parent components if needed (only if not skipping render)
+            if (!skipRender) {
+                let current = graph.getComponent(compId);
+                while (current && current.parentComponent) {
+                    const groupId = `comp_${current.parentComponent}`;
+                    if (!this.expandedGroups.has(groupId)) {
+                        this.expandedGroups.add(groupId);
+                        needsRender = true;
+                    }
+                    current = graph.getComponent(current.parentComponent);
                 }
-                current = graph.getComponent(current.parentComponent);
             }
-            if (needsRender) this.render();
 
             const item = this.container?.querySelector(`[data-component-id="${compId}"]`);
             if (item) {
@@ -710,6 +708,11 @@ class HierarchyPanel {
             }
         });
 
+        // If we expanded groups, re-render once (only if not already rendering)
+        if (needsRender && !skipRender) {
+            this.render();
+        }
+
         // Scroll into view (Bulls Eye: Canvas -> Hierarchy)
         if (firstSelectedItem) {
             firstSelectedItem.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -717,30 +720,45 @@ class HierarchyPanel {
     }
 
     /**
-     * Reveal a node in the path tree by expanding all parent branches
+     * Reveal a node in the path tree by expanding the paths group
+     * @param {string} nodeId - The node to reveal
+     * @param {boolean} deferRender - If true, don't render immediately, just return if changes were made
+     * @returns {boolean} True if groups were expanded
      */
-    revealNodeInPathTree(nodeId) {
+    revealNodeInPathTree(nodeId, deferRender = false) {
+        let changed = false;
+
         if (!this.expandedGroups.has('paths')) {
             this.expandedGroups.add('paths');
+            changed = true;
         }
 
-        // We search for any div containing this node-id
-        // Since we render recursively, we need to find which segments contain it
-        // A simple brute force: if we find the node, we expand the group it's in.
-        // For now, let's just render and check if it appeared.
-        this.render();
+        // For now, we just ensure paths are expanded.
+        // More sophisticated expansion (finding which branch contains the node) 
+        // could be added but is complex without a reverse lookup.
+
+        if (changed && !deferRender) {
+            this.render();
+        }
+
+        return changed;
     }
 
     /**
      * Reveal a component by expanding its parent chain
+     * @param {string} compId - The component to reveal
+     * @param {boolean} deferRender - If true, don't render immediately, just return if changes were made
+     * @returns {boolean} True if groups were expanded
      */
-    revealComponentInTree(compId) {
+    revealComponentInTree(compId, deferRender = false) {
+        let changed = false;
+
         if (!this.expandedGroups.has('components')) {
             this.expandedGroups.add('components');
+            changed = true;
         }
 
         let current = graph.getComponent(compId);
-        let changed = false;
         while (current) {
             const groupId = `comp_${current.id}`;
             if (!this.expandedGroups.has(groupId)) {
@@ -750,7 +768,11 @@ class HierarchyPanel {
             current = current.parentComponent ? graph.getComponent(current.parentComponent) : null;
         }
 
-        if (changed) this.render();
+        if (changed && !deferRender) {
+            this.render();
+        }
+
+        return changed;
     }
 }
 

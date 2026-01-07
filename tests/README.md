@@ -9,51 +9,65 @@ Comprehensive testing infrastructure for the UCM Editor project.
 ```
 tests/
 ├── unit/              # Unit tests for individual modules
-├── integration/       # End-to-end integration tests
+├── e2e/               # End-to-end browser interaction tests
+├── smoke/             # Smoke tests for pre-publish validation
+├── fuzz/              # Fuzz testing
+├── integration/       # Integration tests
 ├── performance/       # Performance benchmarks
-├── reports/          # Test execution reports and findings
-└── README.md         # This file
+├── reports/           # Test execution reports and findings
+└── README.md          # This file
 ```
+
+---
+
+## Test Summary
+
+| Test Type | Count | Command |
+|-----------|-------|---------|
+| Unit Tests (Jest) | 6 | `npm test` |
+| Smoke Tests | 34 | `node tests/smoke/smoke-test.js` |
+| E2E Tests | 2 scenarios | `node tests/e2e/basic_flow.js` |
+| UI Tests | ~19 assertions | Open `test-ui.html` in browser |
+| **Total** | **~61 tests** | - |
 
 ---
 
 ## Running Tests
 
-### Integration Tests (Phase 1 Validation)
+### Unit Tests (Jest)
 
-**Prerequisites**:
-- Server running on `http://localhost:8088`
-- Puppeteer installed (`npm install`)
-
-**Run**:
-```bash
-node tests/integration/phase1-validation.test.js
-```
-
-**Coverage**:
-- Task 1: DSL Editor Sidebar (5 tests)
-- Task 2: Export & Import System (3 tests)
-- Task 3: Settings Panel (2 tests)
-- Additional: Example diagrams & toolbar (4 tests)
-
-**Total**: 14 tests covering all Phase 1 features
-
----
-
-### Unit Tests (Planned - P4.1)
-
-**Framework**: Jest or Vitest
-
-**Modules to Test**:
-- `js/core/graph.js` - Graph operations
-- `js/core/parser.js` - DSL parsing
-- `js/core/serializer.js` - DSL serialization
-- `js/core/history.js` - Undo/redo functionality
-
-**Run** (when implemented):
 ```bash
 npm test
 ```
+
+### Smoke Tests (Pre-publish validation)
+
+**Prerequisites**:
+- Server running on `http://localhost:8080`
+- Puppeteer installed (`npm install`)
+
+```bash
+# Start server in one terminal
+python3 -m http.server 8080
+
+# Run smoke tests in another terminal
+node tests/smoke/smoke-test.js
+```
+
+**Coverage**:
+- Application loading (5 tests)
+- Graph operations (5 tests)
+- Component system (4 tests)
+- Node selection (3 tests)
+- Edge/path selection (4 tests)
+- Waypoint operations (1 test)
+- Tool switching (3 tests)
+- Undo/redo (3 tests)
+- Serialization (2 tests)
+- Panel interactions (varies)
+- Zoom/pan (2 tests)
+- Delete operations (1 test)
+- Context menu (1 test)
 
 ---
 

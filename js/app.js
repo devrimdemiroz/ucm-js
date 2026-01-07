@@ -126,8 +126,11 @@ if (document.readyState === 'loading') {
     editor.init();
 }
 
-// Expose to window for debugging
+// Expose to window for debugging and testing
 window.ucmEditor = editor;
 window.ucmGraph = graph;
+window.ucmCanvas = canvas;
+window.ucmSelection = selection;
+window.ucmHistory = history;
 window.ucmFileLoader = fileLoader;
 window.ucmNotifications = notifications;

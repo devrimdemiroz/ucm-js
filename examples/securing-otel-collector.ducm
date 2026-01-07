@@ -7,6 +7,7 @@ component "InstrumentedApp" type process at (50, 200) size (180, 200) {
 
 component "OTel_Agent" type agent at (260, 100) size (260, 500) {
   responsibility "ReceiveLocal" at (320, 300)
+  timer "TokenRefreshTimer" at (320, 400)
   responsibility "RequestToken" at (320, 500)
   responsibility "AttachAuth" at (460, 500)
   responsibility "TLSEncrypt" at (460, 300)
@@ -41,7 +42,8 @@ component "TraceBackend" type object at (1030, 200) size (180, 200) {
 
 link "GenerateTraces" -> "SendSpans"
 link "SendSpans" -> "ReceiveLocal"
-link "ReceiveLocal" -> "RequestToken"
+link "ReceiveLocal" -> "TokenRefreshTimer"
+link "TokenRefreshTimer" -> "RequestToken"
 link "RequestToken" -> "ValidateCreds"
 link "ValidateCreds" -> "IssueToken"
 link "IssueToken" -> "AttachAuth"

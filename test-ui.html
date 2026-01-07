@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>UCM-JS UI Functionality Tests</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #eee; }
+        .pass { color: #4ade80; }
+        .fail { color: #f87171; }
+        .info { color: #60a5fa; }
+        #results { white-space: pre-wrap; line-height: 1.6; }
+        h1 { color: #fff; }
+    </style>
+</head>
+<body>
+    <h1>UCM-JS UI Functionality Tests</h1>
+    <div id="results"></div>
+
+    <!-- Hidden canvas for testing -->
+    <svg id="canvas" style="display:none;">
+        <g id="viewport">
+            <g id="layer-components"></g>
+            <g id="layer-edges"></g>
+            <g id="layer-nodes"></g>
+            <g id="layer-labels"></g>
+            <g id="layer-selection"></g>
+        </g>
+    </svg>
+    <div id="canvas-container" style="display:none;"></div>
+    <div id="actions-content" style="display:none;"></div>
+    <div id="hierarchy-tree" style="display:none;"></div>
+    <div id="properties-content" style="display:none;"></div>
+    <div id="dsl-editor" style="display:none;"></div>
+    <button id="btn-undo" style="display:none;"></button>
+    <button id="btn-redo" style="display:none;"></button>
+
+    <script type="module">
+        const results = document.getElementById('results');
+        let passed = 0;
+        let failed = 0;
+
+        function log(msg, type = 'info') {
+            const prefix = type === 'pass' ? '✓ PASS: ' : type === 'fail' ? '✗ FAIL: ' : '  INFO: ';
+            results.innerHTML += `<span class="${type}">${prefix}${msg}</span>\n`;
+            if (type === 'pass') passed++;
+            if (type === 'fail') failed++;
+        }
+
+        async function runTests() {
+            log('Starting UI Functionality Tests...', 'info');
+            log('', 'info');
+
+            try {
+                // Import modules
+                log('=== Module Loading ===', 'info');
+
+                const { graph } = await import('./js/core/graph.js');
+                log('Graph module loaded', 'pass');
+
+                const { selection } = await import('./js/editor/selection.js');
+                log('Selection module loaded', 'pass');
+
+                const { canvas } = await import('./js/editor/canvas.js');
+                log('Canvas module loaded', 'pass');
+
+                const { contextMenu } = await import('./js/editor/context-menu.js');
+                log('Context Menu module loaded', 'pass');
+
+                const { actionsPanel } = await import('./js/ui/actions-panel.js');
+                log('Actions Panel module loaded', 'pass');
+
+                const { history } = await import('./js/core/history.js');
+                log('History module loaded', 'pass');
+
+                const forkJoin = await import('./js/core/fork-join.js');
+                log('Fork-Join module loaded', 'pass');
+
+                log('', 'info');
+                log('=== Graph Operations ===', 'info');
+
+                // Test 1: Create nodes
+                graph.clear();
+                const startNode = graph.addNode('start', { x: 100, y: 100 });
+                if (startNode && startNode.type === 'start') {
+                    log('Create start node', 'pass');
+                } else {
+                    log('Create start node', 'fail');
+                }
+
+                const endNode = graph.addNode('end', { x: 400, y: 100 });
+                if (endNode && endNode.type === 'end') {
+                    log('Create end node', 'pass');
+                } else {
+                    log('Create end node', 'fail');
+                }
+
+                // Test 2: Create edge
+                const edge1 = graph.addEdge(startNode.id, endNode.id);
+                if (edge1 && edge1.sourceNodeId === startNode.id && edge1.targetNodeId === endNode.id) {
+                    log('Create edge between nodes', 'pass');
+                } else {
+                    log('Create edge between nodes', 'fail');
+                }
+
+                // Verify edge connections
+                if (startNode.outEdges.has(edge1.id) && endNode.inEdges.has(edge1.id)) {
+                    log('Edge connections verified', 'pass');
+                } else {
+                    log('Edge connections verified', 'fail');
+                }
+
+                log('', 'info');
+                log('=== Insert Responsibility Tests ===', 'info');
+
+                // Test 3: Insert responsibility on edge
+                const respNode = graph.addNode('responsibility', { x: 250, y: 100 });
+                graph.removeEdge(edge1.id);
+                const edge2 = graph.addEdge(startNode.id, respNode.id);
+                const edge3 = graph.addEdge(respNode.id, endNode.id);
+
+                if (respNode && respNode.type === 'responsibility') {
+                    log('Create responsibility node', 'pass');
+                } else {
+                    log('Create responsibility node', 'fail');
+                }
+
+                if (startNode.outEdges.has(edge2.id) && respNode.inEdges.has(edge2.id)) {
+                    log('Start -> Responsibility edge connected', 'pass');
+                } else {
+                    log('Start -> Responsibility edge connected', 'fail');
+                }
+
+                if (respNode.outEdges.has(edge3.id) && endNode.inEdges.has(edge3.id)) {
+                    log('Responsibility -> End edge connected', 'pass');
+                } else {
+                    log('Responsibility -> End edge connected', 'fail');
+                }
+
+                log('', 'info');
+                log('=== Insert Waypoint Tests ===', 'info');
+
+                // Test 4: Insert waypoint (empty node)
+                const waypointNode = graph.addNode('empty', { x: 175, y: 100 });
+                graph.removeEdge(edge2.id);
+                const edge4 = graph.addEdge(startNode.id, waypointNode.id);
+                const edge5 = graph.addEdge(waypointNode.id, respNode.id);
+
+                if (waypointNode && waypointNode.type === 'empty') {
+                    log('Create waypoint (empty) node', 'pass');
+                } else {
+                    log('Create waypoint (empty) node', 'fail');
+                }
+
+                // Verify path: Start -> Waypoint -> Responsibility -> End
+                const pathValid =
+                    startNode.outEdges.size === 1 &&
+                    waypointNode.inEdges.size === 1 &&
+                    waypointNode.outEdges.size === 1 &&
+                    respNode.inEdges.size === 1 &&
+                    respNode.outEdges.size === 1 &&
+                    endNode.inEdges.size === 1;
+
+                if (pathValid) {
+                    log('Path integrity: Start -> Waypoint -> Resp -> End', 'pass');
+                } else {
+                    log('Path integrity: Start -> Waypoint -> Resp -> End', 'fail');
+                }
+
+                log('', 'info');
+                log('=== Node Conversion Tests ===', 'info');
+
+                // Test 5: Convert waypoint to responsibility
+                graph.updateNode(waypointNode.id, { type: 'responsibility' });
+                const updatedWaypoint = graph.getNode(waypointNode.id);
+                if (updatedWaypoint.type === 'responsibility') {
+                    log('Convert empty -> responsibility', 'pass');
+                } else {
+                    log('Convert empty -> responsibility', 'fail');
+                }
+
+                // Test 6: Convert back to empty
+                graph.updateNode(waypointNode.id, { type: 'empty' });
+                const revertedWaypoint = graph.getNode(waypointNode.id);
+                if (revertedWaypoint.type === 'empty') {
+                    log('Convert responsibility -> empty', 'pass');
+                } else {
+                    log('Convert responsibility -> empty', 'fail');
+                }
+
+                log('', 'info');
+                log('=== Fork/Join Tests ===', 'info');
+
+                // Test 7: Convert to fork
+                forkJoin.convertToFork(waypointNode.id, 'or');
+                const forkNode = graph.getNode(waypointNode.id);
+                if (forkNode.type === 'fork' && forkNode.properties.forkType === 'or') {
+                    log('Convert to OR-Fork', 'pass');
+                } else {
+                    log('Convert to OR-Fork', 'fail');
+                }
+
+                // Test 8: Toggle fork type
+                forkJoin.toggleForkType(waypointNode.id);
+                const toggledFork = graph.getNode(waypointNode.id);
+                if (toggledFork.properties.forkType === 'and') {
+                    log('Toggle fork type OR -> AND', 'pass');
+                } else {
+                    log('Toggle fork type OR -> AND', 'fail');
+                }
+
+                // Test 9: Add branch
+                const branchResult = forkJoin.addBranch(waypointNode.id, 175, 200);
+                const forkAfterBranch = graph.getNode(waypointNode.id);
+                if (forkAfterBranch.outEdges.size === 2) {
+                    log('Add branch to fork (2 outgoing edges)', 'pass');
+                } else {
+                    log(`Add branch to fork (expected 2, got ${forkAfterBranch.outEdges.size})`, 'fail');
+                }
+
+                log('', 'info');
+                log('=== Component Tests ===', 'info');
+
+                // Test 10: Create component
+                const comp = graph.addComponent('team', { x: 50, y: 50, width: 400, height: 200, name: 'Test Team' });
+                if (comp && comp.type === 'team') {
+                    log('Create team component', 'pass');
+                } else {
+                    log('Create team component', 'fail');
+                }
+
+                // Test 11: Bind node to component
+                graph.bindNodeToComponent(startNode.id, comp.id);
+                const boundStart = graph.getNode(startNode.id);
+                if (boundStart.parentComponent === comp.id) {
+                    log('Bind node to component', 'pass');
+                } else {
+                    log('Bind node to component', 'fail');
+                }
+
+                log('', 'info');
+                log('=== Selection Tests ===', 'info');
+
+                // Test 12: Select node
+                selection.selectNode(startNode.id);
+                if (selection.selectedNodes.has(startNode.id)) {
+                    log('Select node', 'pass');
+                } else {
+                    log('Select node', 'fail');
+                }
+
+                // Test 13: Clear selection
+                selection.clearSelection();
+                if (selection.selectedNodes.size === 0) {
+                    log('Clear selection', 'pass');
+                } else {
+                    log('Clear selection', 'fail');
+                }
+
+                // Test 14: Select edge
+                const allEdges = [...graph.edges.keys()];
+                if (allEdges.length > 0) {
+                    selection.selectEdge(allEdges[0]);
+                    if (selection.selectedEdges.has(allEdges[0])) {
+                        log('Select edge', 'pass');
+                    } else {
+                        log('Select edge', 'fail');
+                    }
+                }
+
+                log('', 'info');
+                log('=== Delete Tests ===', 'info');
+
+                // Test 15: Delete node
+                const nodeCountBefore = graph.nodes.size;
+                graph.removeNode(respNode.id);
+                if (graph.nodes.size === nodeCountBefore - 1 && !graph.getNode(respNode.id)) {
+                    log('Delete node', 'pass');
+                } else {
+                    log('Delete node', 'fail');
+                }
+
+                // Test 16: Delete edge
+                const edgeCountBefore = graph.edges.size;
+                const edgeToDelete = [...graph.edges.keys()][0];
+                if (edgeToDelete) {
+                    graph.removeEdge(edgeToDelete);
+                    if (graph.edges.size === edgeCountBefore - 1) {
+                        log('Delete edge', 'pass');
+                    } else {
+                        log('Delete edge', 'fail');
+                    }
+                }
+
+                // Test 17: Delete component
+                graph.removeComponent(comp.id);
+                if (!graph.getComponent(comp.id)) {
+                    log('Delete component', 'pass');
+                } else {
+                    log('Delete component', 'fail');
+                }
+
+                log('', 'info');
+                log('=== Serialization Tests ===', 'info');
+
+                // Test 18: Serialize graph
+                const json = graph.toJSON();
+                if (json && json.nodes && json.edges) {
+                    log('Graph serialization (toJSON)', 'pass');
+                } else {
+                    log('Graph serialization (toJSON)', 'fail');
+                }
+
+                // Test 19: Deserialize graph
+                graph.clear();
+                graph.fromJSON(json);
+                if (graph.nodes.size > 0) {
+                    log('Graph deserialization (fromJSON)', 'pass');
+                } else {
+                    log('Graph deserialization (fromJSON)', 'fail');
+                }
+
+            } catch (e) {
+                log(`Test error: ${e.message}`, 'fail');
+                console.error(e);
+            }
+
+            log('', 'info');
+            log('=== Test Summary ===', 'info');
+            log(`Passed: ${passed}`, passed > 0 ? 'pass' : 'info');
+            log(`Failed: ${failed}`, failed > 0 ? 'fail' : 'info');
+            log(`Total: ${passed + failed}`, 'info');
+
+            // Send results to console for CLI access
+            console.log('TEST_RESULTS:', JSON.stringify({ passed, failed, total: passed + failed }));
+        }
+
+        runTests();
+    </script>
+</body>
+</html>

@@ -23,7 +23,7 @@ const PATTERNS = {
 
     // <type> "Name" at (x, y)
     // Allow negative coordinates with -?\d+
-    node: /^\s*(start|end|responsibility|fork|join)\s+(?:"([^"]+)"|(\S+))\s+at\s*\((-?\d+),\s*(-?\d+)\)/i,
+    node: /^\s*(start|end|responsibility|fork|join|timer)\s+(?:"([^"]+)"|(\S+))\s+at\s*\((-?\d+),\s*(-?\d+)\)/i,
 
     // link "A" -> "B"
     link: /^\s*link\s+(?:"([^"]+)"|(\S+))\s*->\s*(?:"([^"]+)"|(\S+))/i

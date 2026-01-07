@@ -87,10 +87,14 @@ class SelectionManager {
         }
 
         this.selectedNodes.add(nodeId);
-        this.emit('selection:changed', {
-            nodes: [...this.selectedNodes],
-            edges: [...this.selectedEdges]
-        });
+        try {
+            this.emit('selection:changed', {
+                nodes: [...this.selectedNodes],
+                edges: [...this.selectedEdges]
+            });
+        } catch (e) {
+            console.error('Error emitting selection event:', e);
+        }
 
         // Update visual highlight
         this.updateSelectionHighlights();

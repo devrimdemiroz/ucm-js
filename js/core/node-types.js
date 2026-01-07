@@ -91,6 +91,17 @@ export const NODE_TYPES = {
         canHaveMultipleIn: true,
         editable: ['name', 'joinType'], // joinType: 'or' | 'and'
         joinType: 'or'
+    },
+
+    timer: {
+        name: 'Timer',
+        icon: '⏰',
+        shape: 'clock',
+        color: '#000000',
+        radius: 12,
+        canHaveMultipleOut: false,
+        canHaveMultipleIn: true,
+        editable: ['name', 'description', 'timeout']
     }
 };
 
@@ -215,6 +226,34 @@ export function createNodeSVG(node, incomingAngle = null) {
             shape.setAttribute('fill', typeInfo.color);
             break;
 
+        case 'clock':
+            shape = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+            // Outer Circle
+            const clockFace = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            clockFace.setAttribute('r', 12);
+            clockFace.setAttribute('fill', 'white');
+            clockFace.setAttribute('stroke', typeInfo.color);
+            clockFace.setAttribute('stroke-width', 2);
+
+            // Hands (static time ~ 3:00)
+            const hourHand = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            hourHand.setAttribute('x1', 0); hourHand.setAttribute('y1', 0);
+            hourHand.setAttribute('x2', 6); hourHand.setAttribute('y2', 0);
+            hourHand.setAttribute('stroke', typeInfo.color);
+            hourHand.setAttribute('stroke-width', 2);
+
+            const minuteHand = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            minuteHand.setAttribute('x1', 0); minuteHand.setAttribute('y1', 0);
+            minuteHand.setAttribute('x2', 0); minuteHand.setAttribute('y2', -8);
+            minuteHand.setAttribute('stroke', typeInfo.color);
+            minuteHand.setAttribute('stroke-width', 2);
+
+            shape.appendChild(clockFace);
+            shape.appendChild(hourHand);
+            shape.appendChild(minuteHand);
+            break;
+
         case 'junction':
             const isAnd = (node.type === 'fork' && node.properties.forkType === 'and') ||
                 (node.type === 'join' && node.properties.joinType === 'and');
@@ -247,9 +286,8 @@ export function createNodeSVG(node, incomingAngle = null) {
     // Add hit area for easier selection
     // Add hit area for easier selection
     const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    hitArea.setAttribute('r', 18);
-    hitArea.setAttribute('fill', 'white');
-    hitArea.setAttribute('fill-opacity', '0');
+    hitArea.setAttribute('r', 24);
+    hitArea.setAttribute('fill', 'transparent');
     hitArea.setAttribute('class', 'hit-area');
     g.insertBefore(hitArea, g.firstChild);
 

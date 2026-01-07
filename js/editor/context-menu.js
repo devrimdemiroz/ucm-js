@@ -103,14 +103,16 @@ class ContextMenu {
 
             // Insert actions for nodes on paths
             if (node.outEdges.size > 0 && node.type !== 'end') {
-                items.push({ label: '✕ Insert Responsibility After', action: 'insert-resp-after' });
-                items.push({ label: '○ Insert Waypoint After', action: 'insert-empty-after' });
+                items.push({ label: '✕ Insert Responsibility', action: 'insert-resp-after' });
+                items.push({ label: '⏰ Insert Timer', action: 'insert-timer-after' });
+                items.push({ label: '○ Insert Waypoint', action: 'insert-empty-after' });
                 items.push({ separator: true });
             }
 
             switch (node.type) {
                 case 'empty':
                     items.push({ label: '✕ Convert to Responsibility', action: 'to-responsibility' });
+                    items.push({ label: '⏰ Convert to Timer', action: 'to-timer' });
                     items.push({ separator: true });
                     items.push({ label: '◇ Convert to OR-Fork', action: 'to-or-fork' });
                     items.push({ label: '◆ Convert to AND-Fork', action: 'to-and-fork' });
@@ -120,6 +122,12 @@ class ContextMenu {
 
                 case 'responsibility':
                     items.push({ label: '○ Convert to Empty', action: 'to-empty' });
+                    items.push({ label: '⏰ Convert to Timer', action: 'to-timer' });
+                    break;
+
+                case 'timer':
+                    items.push({ label: '○ Convert to Empty', action: 'to-empty' });
+                    items.push({ label: '✕ Convert to Responsibility', action: 'to-responsibility' });
                     break;
 
                 case 'fork':
@@ -188,6 +196,11 @@ class ContextMenu {
                 canvas.renderAll();
                 break;
 
+            case 'to-timer':
+                graph.updateNode(this.targetNode.id, { type: 'timer' });
+                canvas.renderAll();
+                break;
+
             case 'to-or-fork':
                 convertToFork(this.targetNode.id, 'or');
                 canvas.renderAll();
@@ -241,12 +254,20 @@ class ContextMenu {
                 this.insertNodeAfter(this.targetNode, 'empty');
                 break;
 
+            case 'insert-timer-after':
+                this.insertNodeAfter(this.targetNode, 'timer');
+                break;
+
             case 'insert-resp-on-edge':
                 this.insertNodeOnEdge(this.targetEdge, 'responsibility');
                 break;
 
             case 'insert-empty-on-edge':
                 this.insertNodeOnEdge(this.targetEdge, 'empty');
+                break;
+
+            case 'insert-timer-on-edge':
+                this.insertNodeOnEdge(this.targetEdge, 'timer');
                 break;
 
             case 'straighten-edge':
@@ -292,45 +313,82 @@ class ContextMenu {
     // Helper: Insert node after another node
     // Handles ALL outgoing edges from the source node (important for forks)
     insertNodeAfter(node, nodeType) {
-        if (node.outEdges.size === 0) return;
+        console.log('[insertNodeAfter] Starting for node:', node.id, node.type, 'outEdges:', [...node.outEdges]);
+
+        if (node.outEdges.size === 0) {
+            console.log('[insertNodeAfter] No outgoing edges, aborting');
+            return;
+        }
 
         // Get all outgoing edges
         const outEdgeIds = [...node.outEdges];
+        console.log('[insertNodeAfter] outEdgeIds:', outEdgeIds);
 
         // Calculate position: midpoint to first target (for placement)
         const firstEdge = graph.getEdge(outEdgeIds[0]);
-        if (!firstEdge) return;
+        console.log('[insertNodeAfter] firstEdge:', firstEdge);
+        if (!firstEdge) {
+            console.log('[insertNodeAfter] firstEdge not found, aborting');
+            return;
+        }
         const firstTarget = graph.getNode(firstEdge.targetNodeId);
-        if (!firstTarget) return;
+        console.log('[insertNodeAfter] firstTarget:', firstTarget);
+        if (!firstTarget) {
+            console.log('[insertNodeAfter] firstTarget not found, aborting');
+            return;
+        }
 
         const midX = (node.position.x + firstTarget.position.x) / 2;
         const midY = (node.position.y + firstTarget.position.y) / 2;
+        console.log('[insertNodeAfter] Waypoint position:', midX, midY);
 
         // Create the new node
         const newNode = graph.addNode(nodeType, { x: midX, y: midY });
+        console.log('[insertNodeAfter] Created waypoint:', newNode.id);
 
         // Reconnect ALL outgoing edges through the new node
-        outEdgeIds.forEach(edgeId => {
+        outEdgeIds.forEach((edgeId, idx) => {
+            console.log(`[insertNodeAfter] Processing edge ${idx}:`, edgeId);
             const edge = graph.getEdge(edgeId);
-            if (!edge) return;
+            console.log(`[insertNodeAfter] Edge data:`, edge);
+            if (!edge) {
+                console.log(`[insertNodeAfter] Edge ${edgeId} not found!`);
+                return;
+            }
 
             const targetNode = graph.getNode(edge.targetNodeId);
-            if (!targetNode) return;
+            console.log(`[insertNodeAfter] Target node:`, targetNode?.id);
+            if (!targetNode) {
+                console.log(`[insertNodeAfter] Target node not found!`);
+                return;
+            }
 
             // Remove original edge and create edge from new node to target
+            console.log(`[insertNodeAfter] Removing edge ${edgeId}`);
             graph.removeEdge(edgeId);
-            graph.addEdge(newNode.id, targetNode.id);
+
+            console.log(`[insertNodeAfter] Creating edge: ${newNode.id} -> ${targetNode.id}`);
+            const newEdge1 = graph.addEdge(newNode.id, targetNode.id);
+            console.log(`[insertNodeAfter] Created edge:`, newEdge1);
         });
 
         // Create single edge from source to new node
-        graph.addEdge(node.id, newNode.id);
+        console.log(`[insertNodeAfter] Creating edge: ${node.id} -> ${newNode.id}`);
+        const newEdge2 = graph.addEdge(node.id, newNode.id);
+        console.log(`[insertNodeAfter] Created edge:`, newEdge2);
 
         if (node.parentComponent) {
             graph.bindNodeToComponent(newNode.id, node.parentComponent);
         }
 
+        console.log('[insertNodeAfter] Final state:');
+        console.log('  Source outEdges:', [...node.outEdges]);
+        console.log('  Waypoint inEdges:', [...newNode.inEdges]);
+        console.log('  Waypoint outEdges:', [...newNode.outEdges]);
+
         selection.selectNode(newNode.id);
         canvas.renderAll();
+        console.log('[insertNodeAfter] Done');
     }
 
     // Helper: Insert node on an edge
