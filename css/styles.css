@@ -13,6 +13,12 @@
     stroke-linejoin: round;
 }
 
+/* Edge hit area for easier selection */
+.edge-hit-area {
+    fill: none !important;
+    cursor: pointer;
+}
+
 /* CSS Variables - B&W / Transit-Map Style */
 /* Transit Map Mode Styles */
 .transit-mode #canvas {

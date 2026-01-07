@@ -222,15 +222,17 @@ class UCMCanvas {
 
         compGroup.setAttribute('transform', `translate(${comp.bounds.x}, ${comp.bounds.y})`);
 
-        // Update main rect
-        const rects = compGroup.querySelectorAll('rect');
-        if (rects[0]) {
-            rects[0].setAttribute('width', comp.bounds.width);
-            rects[0].setAttribute('height', comp.bounds.height);
+        // Update main rect (background)
+        const mainRect = compGroup.querySelector('rect:not(.component-header)');
+        if (mainRect) {
+            mainRect.setAttribute('width', comp.bounds.width);
+            mainRect.setAttribute('height', comp.bounds.height);
         }
+
         // Update header bar
-        if (rects[1]) {
-            rects[1].setAttribute('width', comp.bounds.width);
+        const headerRect = compGroup.querySelector('.component-header');
+        if (headerRect) {
+            headerRect.setAttribute('width', comp.bounds.width);
         }
 
         // Update resize handles if selected
@@ -239,7 +241,7 @@ class UCMCanvas {
         }
 
         // Update label
-        const text = compGroup.querySelector('text');
+        const text = compGroup.querySelector('.component-label');
         if (text) {
             text.textContent = comp.properties.name;
         }

@@ -1,38 +1,42 @@
 ucm "SecuringOTelCollector"
 
-component "InstrumentedApp" type process at (50, 250) size (160, 140) {
-  start "GenerateTraces" at (90, 300)
-  responsibility "SendSpans" at (160, 300)
+component "InstrumentedApp" type process at (50, 200) size (180, 200) {
+  start "GenerateTraces" at (100, 300)
+  responsibility "SendSpans" at (180, 300)
 }
 
-component "OTel_Agent" type agent at (260, 150) size (220, 340) {
-  responsibility "ReceiveLocal" at (320, 220)
-  responsibility "RequestToken" at (320, 320)
-  responsibility "AttachAuth" at (420, 320)
-  responsibility "TLSEncrypt" at (420, 420)
+component "OTel_Agent" type agent at (260, 100) size (260, 500) {
+  responsibility "ReceiveLocal" at (320, 300)
+  responsibility "RequestToken" at (320, 500)
+  responsibility "AttachAuth" at (460, 500)
+  responsibility "TLSEncrypt" at (460, 300)
 }
 
-component "Keycloak" type process at (260, 540) size (220, 140) {
-  responsibility "ValidateCreds" at (320, 600)
-  responsibility "IssueToken" at (420, 600)
-  responsibility "VerifyJWT" at (420, 640)
+# Wide Keycloak spanning both Agent and Collector interaction zones
+component "Keycloak" type process at (260, 650) size (740, 150) {
+  # Interaction 1: With Agent (Left side)
+  responsibility "ValidateCreds" at (320, 700)
+  responsibility "IssueToken" at (460, 700)
+  
+  # Interaction 2: With Collector (Right side)
+  responsibility "VerifyJWT" at (840, 700) 
 }
 
-component "PublicNetwork" type object at (530, 300) size (100, 200) {
-  responsibility "SecureChannel" at (580, 400)
+component "PublicNetwork" type object at (550, 200) size (120, 200) {
+  responsibility "SecureChannel" at (610, 300)
 }
 
-component "OTel_Collector" type agent at (680, 150) size (260, 340) {
-  responsibility "ReceiveTLS" at (740, 220)
-  responsibility "ValidateToken" at (740, 320)
-  fork "ProcessSpans" at (840, 320)
-  responsibility "DebugExport" at (880, 220)
-  responsibility "BackendExport" at (880, 420)
+component "OTel_Collector" type agent at (700, 100) size (300, 400) {
+  responsibility "ReceiveTLS" at (760, 300)
+  responsibility "ValidateToken" at (840, 300)
+  fork "ProcessSpans" at (920, 300)
+  responsibility "DebugExport" at (960, 250)
+  responsibility "BackendExport" at (960, 350)
 }
 
-component "TraceBackend" type object at (990, 250) size (160, 180) {
-  join "CollectTraces" at (1050, 320)
-  end "StoredTraces" at (1050, 380)
+component "TraceBackend" type object at (1030, 200) size (180, 200) {
+  join "CollectTraces" at (1100, 300)
+  end "StoredTraces" at (1160, 300)
 }
 
 link "GenerateTraces" -> "SendSpans"

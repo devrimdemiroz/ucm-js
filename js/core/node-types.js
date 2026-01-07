@@ -313,10 +313,11 @@ export function createEdgeSVG(edge, sourceNode, targetNode) {
     const hitPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     hitPath.setAttribute('d', d);
     hitPath.setAttribute('fill', 'none');
-    hitPath.setAttribute('stroke', 'white');
-    hitPath.setAttribute('stroke-opacity', '0');
-    hitPath.setAttribute('stroke-width', '15');
-    hitPath.style.pointerEvents = 'stroke';
+    hitPath.setAttribute('stroke', 'transparent');
+    hitPath.setAttribute('stroke-width', '20');
+    hitPath.setAttribute('class', 'edge-hit-area');
+    hitPath.style.pointerEvents = 'visibleStroke';
+    hitPath.style.cursor = 'pointer';
     group.appendChild(hitPath);
 
     path.setAttribute('d', d);

@@ -290,24 +290,40 @@ class ContextMenu {
     }
 
     // Helper: Insert node after another node
+    // Handles ALL outgoing edges from the source node (important for forks)
     insertNodeAfter(node, nodeType) {
         if (node.outEdges.size === 0) return;
 
-        const edgeId = [...node.outEdges][0];
-        const edge = graph.getEdge(edgeId);
-        if (!edge) return;
+        // Get all outgoing edges
+        const outEdgeIds = [...node.outEdges];
 
-        const targetNode = graph.getNode(edge.targetNodeId);
-        if (!targetNode) return;
+        // Calculate position: midpoint to first target (for placement)
+        const firstEdge = graph.getEdge(outEdgeIds[0]);
+        if (!firstEdge) return;
+        const firstTarget = graph.getNode(firstEdge.targetNodeId);
+        if (!firstTarget) return;
 
-        const midX = (node.position.x + targetNode.position.x) / 2;
-        const midY = (node.position.y + targetNode.position.y) / 2;
+        const midX = (node.position.x + firstTarget.position.x) / 2;
+        const midY = (node.position.y + firstTarget.position.y) / 2;
 
+        // Create the new node
         const newNode = graph.addNode(nodeType, { x: midX, y: midY });
 
-        graph.removeEdge(edgeId);
+        // Reconnect ALL outgoing edges through the new node
+        outEdgeIds.forEach(edgeId => {
+            const edge = graph.getEdge(edgeId);
+            if (!edge) return;
+
+            const targetNode = graph.getNode(edge.targetNodeId);
+            if (!targetNode) return;
+
+            // Remove original edge and create edge from new node to target
+            graph.removeEdge(edgeId);
+            graph.addEdge(newNode.id, targetNode.id);
+        });
+
+        // Create single edge from source to new node
         graph.addEdge(node.id, newNode.id);
-        graph.addEdge(newNode.id, targetNode.id);
 
         if (node.parentComponent) {
             graph.bindNodeToComponent(newNode.id, node.parentComponent);
