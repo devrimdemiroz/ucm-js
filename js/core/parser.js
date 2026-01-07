@@ -113,6 +113,7 @@ export const parser = {
         const componentMap = new Map(); // name -> component object
         const linkQueue = []; // store links to process after all nodes exist
         let currentComponent = null;
+        this.compStack = []; // Stack for nested components
 
         lines.forEach((rawLine, lineIndex) => {
             const lineNum = lineIndex + 1;
@@ -129,7 +130,6 @@ export const parser = {
             // 2. Component Start
             match = line.match(PATTERNS.compStart);
             if (match) {
-                // match[1] or match[2] is name
                 const name = match[1] || match[2];
                 const type = match[3];
                 const x = parseInt(match[4], 10);
@@ -137,19 +137,24 @@ export const parser = {
                 const w = parseInt(match[6], 10);
                 const h = parseInt(match[7], 10);
 
-                // Validate coordinates and size
                 const coordsValid = this.validateCoordinates(x, y, lineNum, result, 'component position');
                 const sizeValid = this.validateSize(w, h, lineNum, result);
 
-                // Check for duplicate component name
                 this.checkDuplicateName(name, componentMap, lineNum, result, 'component');
 
-                // Only create component if validation passed
                 if (coordsValid && sizeValid) {
                     const comp = graph.addComponent(type.toLowerCase(), {
                         name: name,
                         x, y, width: w, height: h
                     });
+
+                    // Nesting logic using a stack
+                    if (!this.compStack) this.compStack = [];
+                    if (currentComponent) {
+                        graph.bindComponentToComponent(comp.id, currentComponent.id);
+                        this.compStack.push(currentComponent);
+                    }
+
                     currentComponent = comp;
                     componentMap.set(name, comp);
                 }
@@ -158,7 +163,11 @@ export const parser = {
 
             // 3. Component End
             if (PATTERNS.compEnd.test(line)) {
-                currentComponent = null;
+                if (this.compStack && this.compStack.length > 0) {
+                    currentComponent = this.compStack.pop();
+                } else {
+                    currentComponent = null;
+                }
                 return;
             }
 

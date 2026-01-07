@@ -46,12 +46,11 @@ class HistoryManager {
         this.saveSnapshot();
 
         // Listen to graph changes with event-type-specific debouncing
-        // @agent main - 2026-01-06 - P3.4: Pass event type to scheduleSnapshot
         const changeEvents = [
             'node:added', 'node:updated', 'node:removed',
             'edge:added', 'edge:updated', 'edge:removed',
             'component:added', 'component:updated', 'component:removed',
-            'node:bound', 'node:unbound'
+            'node:bound', 'node:unbound', 'property:updated'
         ];
 
         changeEvents.forEach(eventType => {
@@ -134,7 +133,16 @@ class HistoryManager {
     }
 
     undo() {
+        if (this.snapshotTimeout) {
+            clearTimeout(this.snapshotTimeout);
+            this.snapshotTimeout = null;
+        }
+
         if (this.undoStack.length <= 1) return;
+
+        import('./tracing.js').then(({ tracing }) => {
+            tracing.startUserAction('history.undo', { 'stack_size': this.undoStack.length });
+        });
 
         this.isExecuting = true;
 
@@ -151,7 +159,16 @@ class HistoryManager {
     }
 
     redo() {
+        if (this.snapshotTimeout) {
+            clearTimeout(this.snapshotTimeout);
+            this.snapshotTimeout = null;
+        }
+
         if (this.redoStack.length === 0) return;
+
+        import('./tracing.js').then(({ tracing }) => {
+            tracing.startUserAction('history.redo', { 'stack_size': this.redoStack.length });
+        });
 
         this.isExecuting = true;
 

@@ -671,11 +671,16 @@ class HierarchyPanel {
             // AUTO-EXPANSION LOGIC (Simplified for now: expand parents if we can infer them)
             // For components:
             const node = graph.getNode(nodeId);
-            // If the hierarchy shows paths, expanding "Paths" group is a good start.
-            // But finding exactly which path/branch is tricky without re-traversing.
+            if (!node) return;
 
-            // Ideally, we search the DOM. If not found, we might be out of luck without re-render.
-            // However, let's just highlight what is visible and attempt scroll.
+            // Expand parents in Hierarchy tree to reveal the selected node
+            // 1. Expand paths if it belongs to a path
+            this.revealNodeInPathTree(nodeId);
+
+            // 2. Expand components if it's pinned
+            if (node.parentComponent) {
+                this.revealComponentInTree(node.parentComponent);
+            }
 
             const item = this.container?.querySelector(`[data-node-id="${nodeId}"]`);
             if (item) {
@@ -709,6 +714,43 @@ class HierarchyPanel {
         if (firstSelectedItem) {
             firstSelectedItem.scrollIntoView({ block: 'center', behavior: 'smooth' });
         }
+    }
+
+    /**
+     * Reveal a node in the path tree by expanding all parent branches
+     */
+    revealNodeInPathTree(nodeId) {
+        if (!this.expandedGroups.has('paths')) {
+            this.expandedGroups.add('paths');
+        }
+
+        // We search for any div containing this node-id
+        // Since we render recursively, we need to find which segments contain it
+        // A simple brute force: if we find the node, we expand the group it's in.
+        // For now, let's just render and check if it appeared.
+        this.render();
+    }
+
+    /**
+     * Reveal a component by expanding its parent chain
+     */
+    revealComponentInTree(compId) {
+        if (!this.expandedGroups.has('components')) {
+            this.expandedGroups.add('components');
+        }
+
+        let current = graph.getComponent(compId);
+        let changed = false;
+        while (current) {
+            const groupId = `comp_${current.id}`;
+            if (!this.expandedGroups.has(groupId)) {
+                this.expandedGroups.add(groupId);
+                changed = true;
+            }
+            current = current.parentComponent ? graph.getComponent(current.parentComponent) : null;
+        }
+
+        if (changed) this.render();
     }
 }
 

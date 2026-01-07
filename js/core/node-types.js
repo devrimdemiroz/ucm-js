@@ -245,12 +245,26 @@ export function createNodeSVG(node, incomingAngle = null) {
     }
 
     // Add hit area for easier selection
+    // Add hit area for easier selection
     const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     hitArea.setAttribute('r', 18);
     hitArea.setAttribute('fill', 'white');
     hitArea.setAttribute('fill-opacity', '0');
     hitArea.setAttribute('class', 'hit-area');
     g.insertBefore(hitArea, g.firstChild);
+
+    // Add selection box (Visual highlight, initially invisible)
+    // Placed behind everything (first child)
+    const selectionBox = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    selectionBox.setAttribute('x', -24);
+    selectionBox.setAttribute('y', -24);
+    selectionBox.setAttribute('width', 48);
+    selectionBox.setAttribute('height', 48);
+    selectionBox.setAttribute('rx', 6);
+    selectionBox.setAttribute('fill', 'none');
+    selectionBox.setAttribute('stroke', 'none');
+    selectionBox.setAttribute('class', 'selection-box');
+    g.insertBefore(selectionBox, g.firstChild);
 
     return g;
 }

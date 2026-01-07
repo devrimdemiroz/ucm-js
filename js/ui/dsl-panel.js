@@ -78,6 +78,10 @@ class DslPanel {
         const text = this.editor.value;
         this.setStatus('Applying...', 'pending');
 
+        import('../core/tracing.js').then(({ tracing }) => {
+            tracing.startUserAction('user.apply_dsl', { 'text_length': text.length });
+        });
+
         try {
             this.isUpdatingFromGraph = true;
             const result = parser.parse(text, graph);

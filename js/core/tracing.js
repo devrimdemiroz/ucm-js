@@ -25,11 +25,19 @@ class UCMTracing {
         this.flushInterval = null;
         this.sessionId = this.generateSpanId(); // Unique session ID
 
-        // Current trace context for parent-child linking
+        // Context stack for nested spans
+        this.contextStack = [];
+        this.currentTraceId = null;
+        this.currentSpanId = null;
     }
 
     setEnabled(enabled) {
         this.enabled = enabled;
+        if (enabled && !this.flushInterval) {
+            this.init();
+        } else if (!enabled && this.flushInterval) {
+            this.destroy();
+        }
         console.log(`OpenTelemetry tracing ${enabled ? 'enabled' : 'disabled'}`);
     }
 
@@ -39,6 +47,8 @@ class UCMTracing {
     }
 
     init() {
+        if (this.flushInterval) return; // Prevent multiple intervals
+
         // Start periodic flush of spans
         this.flushInterval = setInterval(() => this.flush(), 3000);
         console.log('📊 OpenTelemetry tracing initialized (OTLP/HTTP)');
@@ -76,6 +86,13 @@ class UCMTracing {
         if (typeof value === 'boolean') {
             return { boolValue: value };
         }
+        if (typeof value === 'object' && value !== null) {
+            try {
+                return { stringValue: JSON.stringify(value) };
+            } catch (e) {
+                return { stringValue: '[Circular Object]' };
+            }
+        }
         return { stringValue: String(value) };
     }
 
@@ -90,9 +107,9 @@ class UCMTracing {
         const traceId = this.generateTraceId();
         const spanId = this.generateSpanId();
 
-        // Store current context for child spans
+        // Update context
         this.currentTraceId = traceId;
-        this.currentClientSpanId = spanId;
+        this.currentSpanId = spanId;
 
         const span = {
             traceId,
@@ -101,7 +118,7 @@ class UCMTracing {
             name: action,
             kind: SPAN_KIND.CLIENT,
             startTimeUnixNano: this.toNanos(now),
-            endTimeUnixNano: this.toNanos(now + 50), // Client spans are quick
+            endTimeUnixNano: this.toNanos(now + 20),
             attributes: [
                 { key: 'session.id', value: { stringValue: this.sessionId } },
                 { key: 'user.action', value: { stringValue: action } },
@@ -110,10 +127,9 @@ class UCMTracing {
                     value: this.toAttributeValue(value)
                 }))
             ],
-            status: { code: 1 }
+            status: { code: 1 } // Status Ok
         };
 
-        // Queue as browser/client span
         this.queueSpan(span, 'ucm-browser', '1.0.0');
 
         return { traceId, spanId };
@@ -121,7 +137,7 @@ class UCMTracing {
 
     /**
      * Create a SERVER span (internal operation)
-     * Links to current user action as parent
+     * Links to current active span as parent
      */
     createServerSpan(operation, attributes = {}, durationMs = 5) {
         if (!this.enabled) return null;
@@ -129,9 +145,9 @@ class UCMTracing {
         const now = Date.now();
         const spanId = this.generateSpanId();
 
-        // Use current trace context or create new one
+        // Use current context or root
         const traceId = this.currentTraceId || this.generateTraceId();
-        const parentSpanId = this.currentClientSpanId || '';
+        const parentSpanId = this.currentSpanId || '';
 
         const span = {
             traceId,
@@ -151,14 +167,13 @@ class UCMTracing {
             status: { code: 1 }
         };
 
-        // Queue as ucm-editor/server span
         this.queueSpan(span, 'ucm-editor', '1.0.0');
 
         return { traceId, spanId };
     }
 
     /**
-     * Create an INTERNAL span (sub-operation within server)
+     * Create an INTERNAL span (sub-operation)
      */
     createInternalSpan(operation, parentSpanId, attributes = {}, durationMs = 2) {
         if (!this.enabled) return null;
@@ -170,7 +185,7 @@ class UCMTracing {
         const span = {
             traceId,
             spanId,
-            parentSpanId: parentSpanId || '',
+            parentSpanId: parentSpanId || this.currentSpanId || '',
             name: operation,
             kind: SPAN_KIND.INTERNAL,
             startTimeUnixNano: this.toNanos(now - durationMs),
@@ -191,8 +206,7 @@ class UCMTracing {
     queueSpan(span, serviceName, serviceVersion) {
         this.pendingSpans.push({ span, serviceName, serviceVersion });
 
-        // Flush if we have enough spans
-        if (this.pendingSpans.length >= 15) {
+        if (this.pendingSpans.length >= 20) {
             this.flush();
         }
     }
@@ -214,7 +228,6 @@ class UCMTracing {
             byService.get(key).spans.push(span);
         }
 
-        // Create resourceSpans for each service
         const resourceSpans = [];
         for (const { serviceName, serviceVersion, spans } of byService.values()) {
             resourceSpans.push({
@@ -233,9 +246,6 @@ class UCMTracing {
             });
         }
 
-        console.log(`📊 Flushing ${toFlush.length} spans across ${resourceSpans.length} services:`,
-            Array.from(byService.keys()));
-
         try {
             const response = await fetch(this.collectorUrl, {
                 method: 'POST',
@@ -244,133 +254,50 @@ class UCMTracing {
             });
 
             if (!response.ok) {
-                console.warn('📊 Failed to send traces:', response.status);
+                console.warn('📊 Trace export failed:', response.status);
             }
         } catch (error) {
-            console.debug('📊 Trace export failed (collector may be offline)');
+            // Silently fail if collector offline
         }
     }
 
-    // ========================================
-    // High-level tracing methods
-    // ========================================
-
-    // User clicks/actions (CLIENT spans)
-    traceUserClick(element, details = {}) {
-        return this.startUserAction('user.click', {
-            'ui.element': element,
-            ...details
-        });
-    }
-
-    traceToolChange(toolName) {
-        return this.startUserAction('user.tool_change', {
-            'tool.name': toolName
-        });
-    }
-
+    // User interaction tracing
     traceSelection(type, id) {
-        return this.startUserAction('user.select', {
-            'selection.type': type,
-            'selection.id': id
-        });
+        return this.startUserAction('user.select', { 'type': type, 'id': id });
     }
 
-    // Application operations (SERVER spans)
     traceNodeCreation(nodeType, nodeId) {
-        // First create client span for user action
         this.startUserAction('user.create_node', { 'node.type': nodeType });
-
-        // Then server span for the operation
-        const serverSpan = this.createServerSpan('node.create', {
-            'ucm.node.type': nodeType,
-            'ucm.node.id': nodeId
-        }, 8);
-
-        // Internal span for graph update
-        this.createInternalSpan('graph.addNode', serverSpan?.spanId, {
-            'node.id': nodeId
-        }, 3);
-
-        return serverSpan;
+        return this.createServerSpan('node.create', { 'node.id': nodeId, 'type': nodeType });
     }
 
     traceEdgeCreation(sourceId, targetId, edgeId) {
-        this.startUserAction('user.create_edge', {
-            'edge.source': sourceId,
-            'edge.target': targetId
-        });
-
-        const serverSpan = this.createServerSpan('edge.create', {
-            'ucm.edge.source': sourceId,
-            'ucm.edge.target': targetId,
-            'ucm.edge.id': edgeId
-        }, 6);
-
-        this.createInternalSpan('graph.addEdge', serverSpan?.spanId, {
-            'edge.id': edgeId
-        }, 2);
-
-        return serverSpan;
+        this.startUserAction('user.create_edge', { 'source': sourceId, 'target': targetId });
+        return this.createServerSpan('edge.create', { 'edge.id': edgeId });
     }
 
     traceComponentCreation(compType, compId) {
-        this.startUserAction('user.create_component', {
-            'component.type': compType
-        });
-
-        const serverSpan = this.createServerSpan('component.create', {
-            'ucm.component.type': compType,
-            'ucm.component.id': compId
-        }, 7);
-
-        this.createInternalSpan('graph.addComponent', serverSpan?.spanId, {
-            'component.id': compId
-        }, 3);
-
-        return serverSpan;
+        this.startUserAction('user.create_component', { 'type': compType });
+        return this.createServerSpan('component.create', { 'component.id': compId });
     }
 
-    traceCanvasRender(nodeCount, edgeCount, componentCount, durationMs = 15) {
-        const serverSpan = this.createServerSpan('canvas.render', {
-            'canvas.nodes': nodeCount || 0,
-            'canvas.edges': edgeCount || 0,
-            'canvas.components': componentCount || 0,
-            'canvas.duration_ms': Math.round(durationMs)
-        }, Math.max(durationMs, 5));
-
-        // Internal spans for render phases (proportional to total duration)
-        if (serverSpan) {
-            const componentTime = Math.round(durationMs * 0.3);
-            const edgeTime = Math.round(durationMs * 0.35);
-            const nodeTime = Math.round(durationMs * 0.35);
-
-            this.createInternalSpan('render.components', serverSpan.spanId, {
-                'count': componentCount || 0
-            }, componentTime);
-            this.createInternalSpan('render.edges', serverSpan.spanId, {
-                'count': edgeCount || 0
-            }, edgeTime);
-            this.createInternalSpan('render.nodes', serverSpan.spanId, {
-                'count': nodeCount || 0
-            }, nodeTime);
-        }
-
-        return serverSpan;
-    }
-
-    traceUserInteraction(action, details = {}) {
-        return this.startUserAction(`user.${action}`, details);
+    traceCanvasRender(nodeCount, edgeCount, componentCount, durationMs) {
+        return this.createServerSpan('canvas.render', {
+            'nodes': nodeCount,
+            'edges': edgeCount,
+            'components': componentCount,
+            'duration_ms': Math.round(durationMs)
+        }, durationMs);
     }
 
     // Cleanup
     destroy() {
         if (this.flushInterval) {
             clearInterval(this.flushInterval);
+            this.flushInterval = null;
         }
         this.flush();
     }
 }
 
-// Export singleton instance
 export const tracing = new UCMTracing();

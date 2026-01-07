@@ -31,6 +31,11 @@ class FileLoader {
                 path: 'examples/observability-stack.ducm'
             },
             {
+                id: 'securing-otel-collector',
+                name: 'Securing OTel Collector',
+                path: 'examples/securing-otel-collector.ducm'
+            },
+            {
                 id: 'dilbert',
                 name: 'Dilbert Commute',
                 path: 'examples/dilbert.ducm'

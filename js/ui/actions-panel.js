@@ -274,12 +274,53 @@ class ActionsPanel {
             });
         }
 
-        actions.push({
-            id: 'delete-edge',
-            label: 'Delete Edge',
-            icon: '🗑',
-            category: 'Edit'
-        });
+        // Check if edge can be safely deleted without breaking path continuity
+        // An edge can only be deleted if:
+        // 1. It's a standalone edge (both source and target only have this connection)
+        // 2. Or if deleting won't leave orphaned middle-path nodes
+        const sourceNode = graph.getNode(edge.sourceNodeId);
+        const targetNode = graph.getNode(edge.targetNodeId);
+
+        let canDelete = false;
+        let deleteTooltip = '';
+
+        if (sourceNode && targetNode) {
+            const sourceIsTerminal = sourceNode.type === 'start' || sourceNode.type === 'end';
+            const targetIsTerminal = targetNode.type === 'start' || targetNode.type === 'end';
+            const sourceHasOtherOutEdges = sourceNode.outEdges.size > 1;
+            const targetHasOtherInEdges = targetNode.inEdges.size > 1;
+
+            // Allow deletion only if:
+            // - Both nodes are terminal (start/end) with just this connection
+            // - Or source has other outgoing paths (this is a branch that can be pruned)
+            // - Or target has other incoming paths (this is a merge that can be pruned)
+            if ((sourceIsTerminal && targetIsTerminal) ||
+                sourceHasOtherOutEdges ||
+                targetHasOtherInEdges) {
+                canDelete = true;
+            } else {
+                deleteTooltip = 'Cannot delete: would break path continuity. Delete adjacent nodes instead.';
+            }
+        }
+
+        if (canDelete) {
+            actions.push({
+                id: 'delete-edge',
+                label: 'Delete Edge',
+                icon: '🗑',
+                category: 'Edit'
+            });
+        } else {
+            // Show disabled delete option with explanation
+            actions.push({
+                id: 'delete-edge-disabled',
+                label: 'Delete Edge (blocked)',
+                icon: '🔒',
+                category: 'Edit',
+                tooltip: deleteTooltip,
+                disabled: true
+            });
+        }
 
         return actions;
     }
@@ -515,9 +556,9 @@ class ActionsPanel {
         const summary = result.valid
             ? `✅ Diagram is valid!\n\nNo structural errors found.${result.warnings.length > 0 ? `\n\n⚠️ ${result.warnings.length} warning(s) - check console for details.` : ''}`
             : `❌ Diagram has issues:\n\n` +
-              `Errors: ${result.errors.length}\n` +
-              `Warnings: ${result.warnings.length}\n\n` +
-              `See console for detailed report.`;
+            `Errors: ${result.errors.length}\n` +
+            `Warnings: ${result.warnings.length}\n\n` +
+            `See console for detailed report.`;
 
         alert(summary);
 

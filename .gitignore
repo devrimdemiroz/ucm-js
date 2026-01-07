@@ -5,3 +5,4 @@ build/
 .env
 *.log
 *.mov
+knowledge/Securing your OpenTelemetry Collector.pdf

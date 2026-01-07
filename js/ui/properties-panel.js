@@ -80,179 +80,110 @@ class PropertiesPanel {
 
         const typeInfo = NODE_TYPES[node.type];
         const editableFields = typeInfo?.editable || [];
+        const nameValue = node.properties.name || '';
+        const namePlaceholder = nameValue ? '' : (typeInfo?.name || 'Untitled Node');
 
         let html = `
-            <!-- Type Badge -->
-            <div class="property-group">
-                <div class="property-row">
+            <!-- Header: Name & Quick Info -->
+            <div style="margin-bottom: 12px;">
+                <input type="text" 
+                       class="panel-header-input" 
+                       id="prop-name" 
+                       value="${this.escapeHtml(nameValue)}"
+                       placeholder="${namePlaceholder}">
+                
+                <div class="panel-quick-info">
                     <span class="type-badge ${node.type}">
                         ${typeInfo?.icon || '•'} ${typeInfo?.name || node.type}
                     </span>
+                    <span class="id-badge" title="Node ID">${nodeId}</span>
                 </div>
             </div>
 
-            <!-- Basic Info -->
+            <!-- Description (Primary) -->
+            ${editableFields.includes('description') ? `
             <div class="property-group">
-                <div class="property-group-header">Basic</div>
-        `;
-
-        // Name field
-        if (node.type !== 'empty') {
-            html += `
                 <div class="property-row">
-                    <label class="property-label">Name</label>
-                    <div class="property-value">
-                        <input type="text" 
-                               class="property-input" 
-                               id="prop-name" 
-                               value="${this.escapeHtml(node.properties.name || '')}"
-                               placeholder="Enter name">
-                    </div>
+                    <textarea class="property-input property-textarea" 
+                              id="prop-description"
+                              placeholder="Description..."
+                              style="min-height: 60px;">${this.escapeHtml(node.properties.description || '')}</textarea>
                 </div>
-            `;
-        }
+            </div>` : ''}
 
-        // Description field
-        if (editableFields.includes('description')) {
-            html += `
-                <div class="property-row">
-                    <label class="property-label">Description</label>
-                    <div class="property-value">
-                        <textarea class="property-input property-textarea" 
-                                  id="prop-description"
-                                  placeholder="Enter description">${this.escapeHtml(node.properties.description || '')}</textarea>
-                    </div>
-                </div>
-            `;
-        }
-
-        html += `</div>`;
-
-        // Position
-        html += `
+            <!-- Type Specific Primary Fields -->
+            ${node.type === 'empty' ? `
             <div class="property-group">
-                <div class="property-group-header">Position</div>
+                <button class="primary-btn" id="btn-convert-responsibility" style="width: 100%;">
+                    Convert to Responsibility
+                </button>
+            </div>` : ''}
+
+            ${(editableFields.includes('forkType') || editableFields.includes('joinType')) ? `
+            <div class="property-group">
+                <div class="property-group-header">Behavior</div>
                 <div class="property-row">
-                    <label class="property-label">X</label>
+                    <label class="property-label">Type</label>
                     <div class="property-value">
-                        <input type="number" 
-                               class="property-input" 
-                               id="prop-x" 
-                               value="${Math.round(node.position.x)}">
+                        <select class="property-input property-select" id="prop-forkType">
+                            <option value="or" ${(node.properties.forkType === 'or' || node.properties.joinType === 'or') ? 'selected' : ''}>OR (Alternative)</option>
+                            <option value="and" ${(node.properties.forkType === 'and' || node.properties.joinType === 'and') ? 'selected' : ''}>AND (Parallel)</option>
+                        </select>
                     </div>
                 </div>
+            </div>` : ''}
+
+            <!-- Conditions (Advanced) -->
+            ${(editableFields.includes('precondition') || editableFields.includes('postcondition')) ? `
+            <div class="property-group">
+                <div class="property-group-header">Conditions</div>
+                ${editableFields.includes('precondition') ? `
                 <div class="property-row">
-                    <label class="property-label">Y</label>
+                    <label class="property-label">Pre-condition</label>
                     <div class="property-value">
-                        <input type="number" 
-                               class="property-input" 
-                               id="prop-y" 
-                               value="${Math.round(node.position.y)}">
+                        <input type="text" class="property-input" id="prop-precondition" value="${this.escapeHtml(node.properties.precondition || '')}" placeholder="true">
+                    </div>
+                </div>` : ''}
+                ${editableFields.includes('postcondition') ? `
+                <div class="property-row">
+                    <label class="property-label">Post-condition</label>
+                    <div class="property-value">
+                        <input type="text" class="property-input" id="prop-postcondition" value="${this.escapeHtml(node.properties.postcondition || '')}" placeholder="true">
+                    </div>
+                </div>` : ''}
+            </div>` : ''}
+
+            <!-- Position & Layout -->
+            <div class="property-group">
+                <div class="property-group-header">Layout</div>
+                <div class="property-row">
+                    <label class="property-label">Position</label>
+                    <div class="property-value" style="display: flex; gap: 8px;">
+                        <input type="number" class="property-input" id="prop-x" value="${Math.round(node.position.x)}" title="X" style="width: 60px;">
+                        <input type="number" class="property-input" id="prop-y" value="${Math.round(node.position.y)}" title="Y" style="width: 60px;">
                     </div>
                 </div>
             </div>
+
+            <!-- Danger Zone / Actions -->
+            <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-light);">
+                <button class="secondary-btn" id="btn-delete-node" style="width: 100%; color: #dc3545; border-color: rgba(220, 53, 69, 0.2);">
+                    Delete Node
+                </button>
+            </div>
         `;
 
-        // Type-specific fields
-        if (editableFields.includes('precondition')) {
-            html += `
-                <div class="property-group">
-                    <div class="property-group-header">Condition</div>
-                    <div class="property-row">
-                        <label class="property-label">Precondition</label>
-                        <div class="property-value">
-                            <input type="text" 
-                                   class="property-input" 
-                                   id="prop-precondition" 
-                                   value="${this.escapeHtml(node.properties.precondition || '')}"
-                                   placeholder="true">
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        if (editableFields.includes('postcondition')) {
-            html += `
-                <div class="property-group">
-                    <div class="property-group-header">Condition</div>
-                    <div class="property-row">
-                        <label class="property-label">Postcondition</label>
-                        <div class="property-value">
-                            <input type="text" 
-                                   class="property-input" 
-                                   id="prop-postcondition" 
-                                   value="${this.escapeHtml(node.properties.postcondition || '')}"
-                                   placeholder="true">
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        if (editableFields.includes('forkType') || editableFields.includes('joinType')) {
-            const forkType = node.properties.forkType || node.properties.joinType || 'or';
-            html += `
-                <div class="property-group">
-                    <div class="property-group-header">Fork/Join Type</div>
-                    <div class="property-row">
-                        <label class="property-label">Type</label>
-                        <div class="property-value">
-                            <select class="property-input property-select" id="prop-forkType">
-                                <option value="or" ${forkType === 'or' ? 'selected' : ''}>OR (Alternative)</option>
-                                <option value="and" ${forkType === 'and' ? 'selected' : ''}>AND (Parallel)</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Hierarchy info (connected nodes)
+        // Connections Info (Footer)
         const connected = graph.getConnectedNodes(nodeId);
         if (connected.incoming.length > 0 || connected.outgoing.length > 0) {
             html += `
-                <div class="property-group">
-                    <div class="property-group-header">Connections</div>
-            `;
-
-            if (connected.incoming.length > 0) {
-                html += `
-                    <div class="property-row">
-                        <label class="property-label">From</label>
-                        <div class="property-value" style="font-size: 12px; color: var(--text-secondary);">
-                            ${connected.incoming.map(n => n.properties.name || n.id).join(', ')}
-                        </div>
-                    </div>
-                `;
-            }
-
-            if (connected.outgoing.length > 0) {
-                html += `
-                    <div class="property-row">
-                        <label class="property-label">To</label>
-                        <div class="property-value" style="font-size: 12px; color: var(--text-secondary);">
-                            ${connected.outgoing.map(n => n.properties.name || n.id).join(', ')}
-                        </div>
-                    </div>
-                `;
-            }
-
-            html += `</div>`;
-        }
-
-        // Convert options for empty nodes
-        if (node.type === 'empty') {
-            html += `
-                <div class="property-group">
-                    <div class="property-group-header">Actions</div>
-                    <div class="property-row">
-                        <button class="property-input" id="btn-convert-responsibility" style="cursor: pointer;">
-                            Convert to Responsibility
-                        </button>
-                    </div>
+            <div class="property-group" style="border: none; margin-top: 10px;">
+                <div class="property-group-header">Connections</div>
+                <div style="font-size: 11px; color: var(--text-secondary);">
+                    ${connected.incoming.length ? `<div>← ${connected.incoming.map(n => n.properties.name || n.id).join(', ')}</div>` : ''}
+                    ${connected.outgoing.length ? `<div>→ ${connected.outgoing.map(n => n.properties.name || n.id).join(', ')}</div>` : ''}
                 </div>
-            `;
+            </div>`;
         }
 
         this.container.innerHTML = html;
@@ -273,42 +204,40 @@ class PropertiesPanel {
         const targetNode = graph.getNode(edge.targetNodeId);
 
         this.container.innerHTML = `
-            <div class="property-group">
-                <div class="property-row">
-                    <span class="type-badge" style="border-color: var(--edge-color); color: var(--edge-color);">
-                        → Edge
-                    </span>
+            <!-- Header -->
+            <div style="margin-bottom: 12px; border-bottom: 1px solid var(--border-light); padding-bottom: 12px;">
+                <div class="property-group-header" style="font-size: 10px; margin-bottom: 4px;">CONNECTION</div>
+                <div style="font-weight: 500; font-size: 13px;">
+                    <span style="color: var(--text-primary);">${sourceNode?.properties.name || 'Start'}</span>
+                    <span style="color: var(--text-muted); margin: 0 6px;">→</span>
+                    <span style="color: var(--text-primary);">${targetNode?.properties.name || 'End'}</span>
+                </div>
+                <div class="panel-quick-info" style="margin-top: 6px; margin-bottom: 0;">
+                     <span class="id-badge" title="Edge ID">${edgeId}</span>
                 </div>
             </div>
 
+            <!-- Condition -->
             <div class="property-group">
-                <div class="property-group-header">Connection</div>
-                <div class="property-row">
-                    <label class="property-label">From</label>
-                    <div class="property-value" style="font-size: 12px;">
-                        ${sourceNode?.properties.name || edge.sourceNodeId}
-                    </div>
-                </div>
-                <div class="property-row">
-                    <label class="property-label">To</label>
-                    <div class="property-value" style="font-size: 12px;">
-                        ${targetNode?.properties.name || edge.targetNodeId}
-                    </div>
-                </div>
-            </div>
-
-            <div class="property-group">
-                <div class="property-group-header">Condition</div>
+                <div class="property-group-header">Logic</div>
                 <div class="property-row">
                     <label class="property-label">Condition</label>
                     <div class="property-value">
                         <input type="text" 
-                               class="property-input" 
+                               class="property-input panel-header-input" 
+                               style="font-size: 14px; font-weight: 400;"
                                id="prop-condition" 
                                value="${this.escapeHtml(edge.condition || '')}"
                                placeholder="true">
                     </div>
                 </div>
+            </div>
+
+            <!-- Danger Zone / Actions -->
+            <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-light);">
+                <button class="secondary-btn" id="btn-delete-edge" style="width: 100%; color: #dc3545; border-color: rgba(220, 53, 69, 0.2);">
+                    Delete Connection
+                </button>
             </div>
         `;
 
@@ -326,29 +255,30 @@ class PropertiesPanel {
         this.currentType = 'component';
 
         const typeInfo = COMPONENT_TYPES[comp.type] || COMPONENT_TYPES.team;
+        const nameValue = comp.properties.name || '';
+        const namePlaceholder = typeInfo.name;
 
         let html = `
-            <div class="property-group">
-                <div class="property-row">
+            <!-- Header -->
+            <div style="margin-bottom: 12px;">
+                <input type="text" 
+                       class="panel-header-input" 
+                       id="prop-comp-name" 
+                       value="${this.escapeHtml(nameValue)}"
+                       placeholder="${namePlaceholder}">
+                
+                <div class="panel-quick-info">
                     <span class="type-badge">
                         ${typeInfo.icon} ${typeInfo.name}
                     </span>
+                    <span class="id-badge" title="Component ID">${compId}</span>
                 </div>
             </div>
 
+            <!-- Type Selection -->
             <div class="property-group">
-                <div class="property-group-header">Basic</div>
                 <div class="property-row">
-                    <label class="property-label">Name</label>
-                    <div class="property-value">
-                         <input type="text" 
-                               class="property-input" 
-                               id="prop-comp-name" 
-                               value="${this.escapeHtml(comp.properties.name || '')}">
-                    </div>
-                </div>
-                <div class="property-row">
-                    <label class="property-label">Type</label>
+                    <label class="property-label">Kind</label>
                     <div class="property-value">
                         <select class="property-input property-select" id="prop-comp-type">
                             ${Object.keys(COMPONENT_TYPES).map(type =>
@@ -357,36 +287,39 @@ class PropertiesPanel {
                         </select>
                     </div>
                 </div>
+            </div>
+
+            <!-- Dimensions -->
+            <div class="property-group">
+                <div class="property-group-header">Dimensions</div>
                 <div class="property-row">
-                    <label class="property-label">Width</label>
-                    <div class="property-value">
-                        <input type="number" 
-                               class="property-input" 
-                               id="prop-comp-width" 
-                               value="${Math.round(comp.bounds.width)}">
-                    </div>
-                </div>
-                <div class="property-row">
-                    <label class="property-label">Height</label>
-                    <div class="property-value">
-                        <input type="number" 
-                               class="property-input" 
-                               id="prop-comp-height" 
-                               value="${Math.round(comp.bounds.height)}">
+                    <label class="property-label">Size</label>
+                    <div class="property-value" style="display: flex; gap: 8px;">
+                        <input type="number" class="property-input" id="prop-comp-width" value="${Math.round(comp.bounds.width)}" title="Width" style="width: 60px;">
+                        <span style="color:var(--text-muted); line-height: 24px;">×</span>
+                        <input type="number" class="property-input" id="prop-comp-height" value="${Math.round(comp.bounds.height)}" title="Height" style="width: 60px;">
                     </div>
                 </div>
             </div>
             
+            <!-- Bound Elements -->
             <div class="property-group">
-                <div class="property-group-header">Bound Elements</div>
-                <div class="property-value" style="font-size: 12px; max-height: 100px; overflow-y: auto;">
+                <div class="property-group-header">Contents</div>
+                <div class="property-value" style="font-size: 11px; max-height: 120px; overflow-y: auto; background: var(--bg-secondary); padding: 8px; border-radius: 4px;">
                     ${comp.childNodes.size > 0 ?
                 [...comp.childNodes].map(nid => {
                     const n = graph.getNode(nid);
-                    return `<div>• ${n ? (n.properties.name || n.id) : nid}</div>`;
+                    return `<div style="margin-bottom: 2px; color: var(--text-secondary);">• ${n ? (n.properties.name || n.id) : nid}</div>`;
                 }).join('')
-                : '<span style="color:var(--text-muted)">No bound elements</span>'}
+                : '<span style="color:var(--text-muted)">Empty</span>'}
                 </div>
+            </div>
+
+            <!-- Danger Zone / Actions -->
+            <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-light);">
+                <button class="secondary-btn" id="btn-delete-comp" style="width: 100%; color: #dc3545; border-color: rgba(220, 53, 69, 0.2);">
+                    Delete Component
+                </button>
             </div>
         `;
 
@@ -424,6 +357,17 @@ class PropertiesPanel {
         if (heightInput) {
             heightInput.addEventListener('change', () => {
                 graph.updateComponent(compId, { bounds: { height: parseFloat(heightInput.value) } });
+            });
+        }
+
+        const deleteBtn = document.getElementById('btn-delete-comp');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => {
+                if (confirm('Are you sure you want to delete this component?')) {
+                    graph.removeComponent(compId);
+                    this.showPlaceholder();
+                    selection.clear();
+                }
             });
         }
     }
@@ -494,6 +438,18 @@ class PropertiesPanel {
                 this.showNodeProperties(nodeId);
             });
         }
+
+        // Delete
+        const deleteBtn = document.getElementById('btn-delete-node');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => {
+                if (confirm('Are you sure you want to delete this node?')) {
+                    graph.removeNode(nodeId);
+                    this.showPlaceholder();
+                    selection.clear();
+                }
+            });
+        }
     }
 
     attachEdgePropertyListeners(edgeId) {
@@ -501,6 +457,15 @@ class PropertiesPanel {
         if (conditionInput) {
             conditionInput.addEventListener('change', () => {
                 graph.updateEdge(edgeId, { condition: conditionInput.value });
+            });
+        }
+
+        const deleteBtn = document.getElementById('btn-delete-edge');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => {
+                graph.removeEdge(edgeId);
+                this.showPlaceholder();
+                selection.clear();
             });
         }
     }
