@@ -359,7 +359,7 @@ export function createEdgeSVG(edge, sourceNode, targetNode) {
     arrow.setAttribute('fill', '#000');
     group.appendChild(arrow);
 
-    // Add visible waypoint markers (draw.io style)
+    // Add visible waypoint markers (draw.io style) - rendered BEFORE hit area
     if (edge.controlPoints && edge.controlPoints.length > 0) {
         edge.controlPoints.forEach((cp, index) => {
             const waypoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -367,7 +367,7 @@ export function createEdgeSVG(edge, sourceNode, targetNode) {
             waypoint.setAttribute('data-waypoint-index', index);
             waypoint.setAttribute('cx', cp.x);
             waypoint.setAttribute('cy', cp.y);
-            waypoint.setAttribute('r', 5);
+            waypoint.setAttribute('r', '6'); // Default size, CSS can override
             group.appendChild(waypoint);
         });
     }
@@ -389,7 +389,7 @@ export function createEdgeSVG(edge, sourceNode, targetNode) {
 /**
  * Helpers for midpoint arrows
  */
-function getMidpoint(source, target, controlPoints) {
+export function getMidpoint(source, target, controlPoints) {
     if (!controlPoints || controlPoints.length === 0) {
         return { x: (source.x + target.x) / 2, y: (source.y + target.y) / 2 };
     }
@@ -400,7 +400,7 @@ function getMidpoint(source, target, controlPoints) {
     return { x, y };
 }
 
-function getAngle(source, target, controlPoints) {
+export function getAngle(source, target, controlPoints) {
     let dx, dy;
     if (!controlPoints || controlPoints.length === 0) {
         dx = target.x - source.x;

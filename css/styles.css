@@ -996,58 +996,79 @@ input:checked+.slider:before {
     stroke-width: 4 !important;
 }
 
-/* Edge Selection Enhanced */
+/* Edge Selection Enhanced - MUST be visually distinct */
 .ucm-edge-group.selected .ucm-edge {
     stroke: var(--selection-color) !important;
-    stroke-width: 3 !important;
-    filter: drop-shadow(0 0 6px var(--selection-glow)) !important;
+    stroke-width: 4 !important;
+    filter: drop-shadow(0 0 8px var(--selection-color)) drop-shadow(0 0 4px var(--selection-color)) !important;
+}
+
+/* Selected edge arrow should also be highlighted */
+.ucm-edge-group.selected .mid-arrow {
+    fill: var(--selection-color) !important;
+    filter: drop-shadow(0 0 4px var(--selection-color)) !important;
 }
 
 .transit-mode .ucm-edge-group.selected .ucm-edge {
     stroke: var(--selection-color) !important;
     stroke-width: 10px !important;
-    /* Stand out in thick transit segments */
-    stroke-opacity: 0.8;
+    filter: drop-shadow(0 0 12px var(--selection-color)) drop-shadow(0 0 6px var(--selection-color)) !important;
 }
 
-/* Waypoint Markers (Enhanced Visibility) */
-/* Waypoint Markers (Enhanced Visibility) */
+/* Hover state for edges - subtle preview */
+.ucm-edge-group:hover:not(.selected) .ucm-edge {
+    stroke: #666 !important;
+    stroke-width: 2.5 !important;
+}
+
+.transit-mode .ucm-edge-group:hover:not(.selected) .ucm-edge {
+    stroke: #444 !important;
+    stroke-width: 8px !important;
+}
+
+/* Waypoint Markers - Always visible with clear states */
 .waypoint-marker {
-    fill: var(--selection-color, #29b6f6);
+    fill: #888888;
     stroke: white;
     stroke-width: 2;
     cursor: move;
-    opacity: 0;
-    transition: opacity var(--transition-fast);
-    /* Strong shadow for visibility against lines */
-    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
+    opacity: 0.6;
+    transition: opacity var(--transition-fast), fill var(--transition-fast), r var(--transition-fast);
+    filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.6));
 }
 
-/* Show waypoints on hover or when selected */
-.ucm-edge-group:hover .waypoint-marker,
+/* Show waypoints more prominently on hover */
+.ucm-edge-group:hover .waypoint-marker {
+    opacity: 1 !important;
+    fill: #555555;
+}
+
+/* Selected edge waypoints - bright blue, larger, glowing */
 .ucm-edge-group.selected .waypoint-marker {
     opacity: 1 !important;
+    fill: var(--selection-color) !important;
+    stroke: white !important;
+    stroke-width: 3 !important;
+    r: 8 !important;
+    filter: drop-shadow(0 0 6px var(--selection-color)) drop-shadow(0 0 3px white) !important;
 }
 
-/* Selected waypoints get a brighter highlight and "halo" */
-.ucm-edge-group.selected .waypoint-marker {
-    fill: #29b6f6;
-    stroke: white;
-    stroke-width: 2;
-    r: 6;
-}
-
+/* Individual waypoint hover - even larger */
 .waypoint-marker:hover {
-    r: 8;
-    fill: var(--primary-dark, #1976D2);
-    stroke: white;
-    stroke-width: 2;
+    r: 10 !important;
+    fill: var(--selection-color) !important;
+    stroke: white !important;
+    stroke-width: 3 !important;
+    filter: drop-shadow(0 0 8px var(--selection-color)) !important;
 }
 
+/* Dragging state */
 .waypoint-marker.dragging {
-    r: 8;
-    opacity: 1;
-    fill: var(--primary-dark, #1976D2);
+    r: 10 !important;
+    opacity: 1 !important;
+    fill: #1976D2 !important;
+    stroke: white !important;
+    stroke-width: 3 !important;
 }
 
 /* Labels */

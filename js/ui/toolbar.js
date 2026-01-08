@@ -8,6 +8,7 @@ import { history } from '../core/history.js';
 import { fileLoader } from '../core/file-loader.js';
 import { validator } from '../core/validator.js';
 import { graph } from '../core/graph.js';
+import { notifications } from './notifications.js';
 
 class Toolbar {
     constructor() {
@@ -55,7 +56,7 @@ class Toolbar {
                     await fileLoader.loadExample(exampleId);
                 } catch (error) {
                     console.error('Failed to load example:', error);
-                    alert('Failed to load diagram');
+                    notifications.error('Failed to load diagram: ' + error.message);
                 }
             }
         });

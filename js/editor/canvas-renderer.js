@@ -10,7 +10,7 @@
  */
 
 import { graph } from '../core/graph.js';
-import { createNodeSVG, createNodeLabel, createEdgeSVG, NODE_TYPES, COMPONENT_TYPES, calculateIncomingAngle } from '../core/node-types.js';
+import { createNodeSVG, createNodeLabel, createEdgeSVG, calculateEdgePath, getMidpoint, getAngle, NODE_TYPES, COMPONENT_TYPES, calculateIncomingAngle } from '../core/node-types.js';
 import { tracing } from '../core/tracing.js';
 
 class CanvasRenderer {
@@ -263,15 +263,60 @@ class CanvasRenderer {
         this.layers.edges.appendChild(edgeSVG);
     }
 
-    /**
-     * Update an existing edge's render
-     * @param {Object} edge - Edge to update
-     */
     updateEdgeRender(edge) {
-        this.renderEdge(edge);
+        const group = this.layers.edges.querySelector(`[data-edge-id="${edge.id}"]`);
+
+        // If edge doesn't exist, full render
+        if (!group) {
+            this.renderEdge(edge);
+            return;
+        }
+
+        const sourceNode = graph.getNode(edge.sourceNodeId);
+        const targetNode = graph.getNode(edge.targetNodeId);
+        if (!sourceNode || !targetNode) return;
+
+        // Calculate new path data
+        const sourcePos = sourceNode.position || sourceNode;
+        const targetPos = targetNode.position || targetNode;
+        const sourceType = sourceNode.type;
+        const targetType = targetNode.type;
+
+        // Recalculate path
+        const d = calculateEdgePath(sourcePos, targetPos, edge.controlPoints, { sourceType, targetType });
+        const midPoint = getMidpoint(sourcePos, targetPos, edge.controlPoints);
+        const angle = getAngle(sourcePos, targetPos, edge.controlPoints);
+
+        // Update Paths (Visual and Hit Area)
+        const path = group.querySelector('.ucm-edge');
+        const hitPath = group.querySelector('.edge-hit-area');
+        if (path) path.setAttribute('d', d);
+        if (hitPath) hitPath.setAttribute('d', d);
+
+        // Update Arrow
+        const arrow = group.querySelector('.mid-arrow');
+        if (arrow) {
+            arrow.setAttribute('transform', `translate(${midPoint.x}, ${midPoint.y}) rotate(${angle})`);
+        }
+
+        // Update Waypoints (Re-render as count/position changes)
+        // Clean up old waypoints
+        group.querySelectorAll('.waypoint-marker').forEach(el => el.remove());
+
+        // Add current waypoints
+        if (edge.controlPoints && edge.controlPoints.length > 0) {
+            edge.controlPoints.forEach((cp, index) => {
+                const waypoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                waypoint.setAttribute('class', 'waypoint-marker');
+                waypoint.setAttribute('data-waypoint-index', index);
+                waypoint.setAttribute('cx', cp.x);
+                waypoint.setAttribute('cy', cp.y);
+                waypoint.setAttribute('r', 5);
+                group.appendChild(waypoint);
+            });
+        }
 
         // If target is an end node, re-render it to update bar rotation
-        const targetNode = graph.getNode(edge.targetNodeId);
         if (targetNode && targetNode.type === 'end') {
             this.renderNode(targetNode);
         }

@@ -4,6 +4,7 @@
  */
 
 import { tracing } from './tracing.js';
+import { notifications } from '../ui/notifications.js';
 
 export class UCMGraph {
     constructor() {
@@ -174,19 +175,19 @@ export class UCMGraph {
 
         // UCM constraint: Start nodes can only have ONE outgoing edge
         if (sourceNode.type === 'start' && sourceNode.outEdges.size > 0) {
-            console.warn('UCM: Start nodes can only have one outgoing path. Use AND-Fork for parallel paths.');
+            notifications.warning('Start nodes can only have one outgoing path. Use a Fork for branching.');
             return null;
         }
 
         // UCM constraint: End nodes cannot have outgoing edges
         if (sourceNode.type === 'end') {
-            console.warn('UCM: End nodes cannot have outgoing edges.');
+            notifications.warning('End nodes cannot have outgoing edges.');
             return null;
         }
 
         // UCM constraint: Start nodes cannot have incoming edges
         if (targetNode.type === 'start') {
-            console.warn('UCM: Start nodes cannot have incoming edges.');
+            notifications.warning('Start nodes cannot have incoming edges.');
             return null;
         }
 

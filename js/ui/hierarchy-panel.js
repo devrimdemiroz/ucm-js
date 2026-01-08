@@ -43,10 +43,10 @@ class HierarchyPanel {
         graph.on('component:updated', (component) => this.updateComponentInTree(component));
         graph.on('component:removed', (data) => this.removeComponentFromTree(data.id));
 
-        // Edge changes may affect path structure
-        graph.on('edge:added', () => this.render());
-        graph.on('edge:updated', () => this.render());
-        graph.on('edge:removed', () => this.render());
+        // Edge changes - optimizations
+        graph.on('edge:added', () => this.render()); // New edge might change path structure
+        graph.on('edge:updated', (edge) => this.updateEdgeInTree(edge)); // Update waypoints in place
+        graph.on('edge:removed', () => this.render()); // Path break requires re-calculation
 
         // Full render on major changes
         graph.on('graph:loaded', () => this.render());
@@ -114,17 +114,34 @@ class HierarchyPanel {
 
         const nodeElement = this.container.querySelector(`[data-node-id="${node.id}"]`);
         if (nodeElement) {
-            const newHtml = renderNodeItem(node);
-            const temp = document.createElement('div');
-            temp.innerHTML = newHtml;
-            const newElement = temp.firstElementChild;
+            // Optimization: If simple property update, just update text/icon
+            // This prevents listener re-attachment and unnecessary DOM thrashing
+            const label = nodeElement.querySelector('.tree-label');
+            const newName = node.properties.name || node.id;
 
-            if (nodeElement.classList.contains('selected')) {
-                newElement.classList.add('selected');
+            if (label && label.textContent !== newName) {
+                label.textContent = newName;
             }
 
-            nodeElement.replaceWith(newElement);
-            this.attachNodeEventListener(newElement, node.id);
+            // Update parent pinning status if needed
+            const pinnedIndicator = nodeElement.querySelector('.node-pinned');
+            const shouldBePinned = !!node.parentComponent;
+
+            // If structure changed (pinned status mismatch), or type changed, do full replace
+            // otherwise the text update above is sufficient
+            if ((!!pinnedIndicator !== shouldBePinned) || !nodeElement.querySelector(`.tree-icon.${node.type}`)) {
+                const newHtml = renderNodeItem(node);
+                const temp = document.createElement('div');
+                temp.innerHTML = newHtml;
+                const newElement = temp.firstElementChild;
+
+                if (nodeElement.classList.contains('selected')) {
+                    newElement.classList.add('selected');
+                }
+
+                nodeElement.replaceWith(newElement);
+                this.attachNodeEventListener(newElement, node.id);
+            }
         }
     }
 
@@ -136,6 +153,35 @@ class HierarchyPanel {
             nodeElement.remove();
         }
         this.updatePathsCount();
+    }
+
+    updateEdgeInTree(edge) {
+        if (!this.container) return;
+
+        const edgeElements = this.container.querySelectorAll(`[data-edge-id="${edge.id}"]`);
+        edgeElements.forEach(el => {
+            // Update waypoint indicator
+            const waypointsSpan = el.querySelector('.edge-waypoints');
+            const count = edge.controlPoints ? edge.controlPoints.length : 0;
+
+            if (count > 0) {
+                const text = `📍${count}`;
+                if (waypointsSpan) {
+                    waypointsSpan.textContent = text;
+                    waypointsSpan.title = `${count} Waypoints`;
+                } else {
+                    // Create if missing
+                    const newSpan = document.createElement('span');
+                    newSpan.className = 'edge-waypoints';
+                    newSpan.title = `${count} Waypoints`;
+                    newSpan.textContent = text;
+                    el.appendChild(newSpan);
+                }
+            } else if (waypointsSpan) {
+                // Remove if no waypoints
+                waypointsSpan.remove();
+            }
+        });
     }
 
     addComponentToTree(component) {
