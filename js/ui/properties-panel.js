@@ -215,6 +215,15 @@ class PropertiesPanel {
         const sourceNode = graph.getNode(edge.sourceNodeId);
         const targetNode = graph.getNode(edge.targetNodeId);
 
+        // Get current style properties with defaults
+        const props = edge.properties || {};
+        const strokeColor = props.strokeColor || '#000000';
+        const strokeWidth = props.strokeWidth || 1.5;
+        const strokeStyle = props.strokeStyle || 'solid';
+        const startArrow = props.startArrow || 'none';
+        const endArrow = props.endArrow || 'none';
+        const opacity = props.opacity !== undefined ? props.opacity : 1;
+
         this.container.innerHTML = `
             <!-- Header -->
             <div style="margin-bottom: 12px; border-bottom: 1px solid var(--border-light); padding-bottom: 12px;">
@@ -229,16 +238,106 @@ class PropertiesPanel {
                 </div>
             </div>
 
+            <!-- Line Style -->
+            <div class="property-group">
+                <div class="property-group-header">Line Style</div>
+
+                <!-- Color -->
+                <div class="property-row">
+                    <label class="property-label">Color</label>
+                    <div class="property-value" style="display: flex; gap: 8px; align-items: center;">
+                        <input type="color"
+                               id="prop-stroke-color"
+                               value="${strokeColor}"
+                               style="width: 32px; height: 24px; padding: 0; border: 1px solid var(--border-light); border-radius: 4px; cursor: pointer;">
+                        <input type="text"
+                               class="property-input"
+                               id="prop-stroke-color-text"
+                               value="${strokeColor}"
+                               style="flex: 1; font-family: monospace; font-size: 12px;">
+                    </div>
+                </div>
+
+                <!-- Width -->
+                <div class="property-row">
+                    <label class="property-label">Width</label>
+                    <div class="property-value" style="display: flex; gap: 8px; align-items: center;">
+                        <input type="range"
+                               id="prop-stroke-width"
+                               value="${strokeWidth}"
+                               min="0.5" max="8" step="0.5"
+                               style="flex: 1;">
+                        <span id="prop-stroke-width-val" style="min-width: 35px; text-align: right; font-size: 12px;">${strokeWidth}px</span>
+                    </div>
+                </div>
+
+                <!-- Style -->
+                <div class="property-row">
+                    <label class="property-label">Style</label>
+                    <div class="property-value">
+                        <select id="prop-stroke-style" class="property-input" style="width: 100%;">
+                            <option value="solid" ${strokeStyle === 'solid' ? 'selected' : ''}>━━━ Solid</option>
+                            <option value="dashed" ${strokeStyle === 'dashed' ? 'selected' : ''}>╌╌╌ Dashed</option>
+                            <option value="dotted" ${strokeStyle === 'dotted' ? 'selected' : ''}>┈┈┈ Dotted</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Opacity -->
+                <div class="property-row">
+                    <label class="property-label">Opacity</label>
+                    <div class="property-value" style="display: flex; gap: 8px; align-items: center;">
+                        <input type="range"
+                               id="prop-opacity"
+                               value="${opacity}"
+                               min="0.1" max="1" step="0.1"
+                               style="flex: 1;">
+                        <span id="prop-opacity-val" style="min-width: 35px; text-align: right; font-size: 12px;">${Math.round(opacity * 100)}%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Arrows -->
+            <div class="property-group">
+                <div class="property-group-header">Arrows</div>
+
+                <div class="property-row">
+                    <label class="property-label">Start</label>
+                    <div class="property-value">
+                        <select id="prop-start-arrow" class="property-input" style="width: 100%;">
+                            <option value="none" ${startArrow === 'none' ? 'selected' : ''}>None</option>
+                            <option value="triangle" ${startArrow === 'triangle' ? 'selected' : ''}>▶ Triangle</option>
+                            <option value="open" ${startArrow === 'open' ? 'selected' : ''}>▷ Open</option>
+                            <option value="diamond" ${startArrow === 'diamond' ? 'selected' : ''}>◆ Diamond</option>
+                            <option value="circle" ${startArrow === 'circle' ? 'selected' : ''}>● Circle</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="property-row">
+                    <label class="property-label">End</label>
+                    <div class="property-value">
+                        <select id="prop-end-arrow" class="property-input" style="width: 100%;">
+                            <option value="none" ${endArrow === 'none' ? 'selected' : ''}>None</option>
+                            <option value="triangle" ${endArrow === 'triangle' ? 'selected' : ''}>▶ Triangle</option>
+                            <option value="open" ${endArrow === 'open' ? 'selected' : ''}>▷ Open</option>
+                            <option value="diamond" ${endArrow === 'diamond' ? 'selected' : ''}>◆ Diamond</option>
+                            <option value="circle" ${endArrow === 'circle' ? 'selected' : ''}>● Circle</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
             <!-- Condition -->
             <div class="property-group">
                 <div class="property-group-header">Logic</div>
                 <div class="property-row">
                     <label class="property-label">Condition</label>
                     <div class="property-value">
-                        <input type="text" 
-                               class="property-input panel-header-input" 
+                        <input type="text"
+                               class="property-input panel-header-input"
                                style="font-size: 14px; font-weight: 400;"
-                               id="prop-condition" 
+                               id="prop-condition"
                                value="${this.escapeHtml(edge.condition || '')}"
                                placeholder="true">
                     </div>
@@ -473,6 +572,68 @@ class PropertiesPanel {
     }
 
     attachEdgePropertyListeners(edgeId) {
+        // Stroke Color (color picker and text input)
+        const colorPicker = document.getElementById('prop-stroke-color');
+        const colorText = document.getElementById('prop-stroke-color-text');
+        if (colorPicker && colorText) {
+            colorPicker.addEventListener('input', () => {
+                colorText.value = colorPicker.value;
+                graph.updateEdge(edgeId, { properties: { strokeColor: colorPicker.value } });
+            });
+            colorText.addEventListener('change', () => {
+                // Validate hex color
+                if (/^#[0-9A-Fa-f]{6}$/.test(colorText.value)) {
+                    colorPicker.value = colorText.value;
+                    graph.updateEdge(edgeId, { properties: { strokeColor: colorText.value } });
+                }
+            });
+        }
+
+        // Stroke Width
+        const widthSlider = document.getElementById('prop-stroke-width');
+        const widthVal = document.getElementById('prop-stroke-width-val');
+        if (widthSlider && widthVal) {
+            widthSlider.addEventListener('input', () => {
+                widthVal.textContent = `${widthSlider.value}px`;
+                graph.updateEdge(edgeId, { properties: { strokeWidth: parseFloat(widthSlider.value) } });
+            });
+        }
+
+        // Stroke Style
+        const styleSelect = document.getElementById('prop-stroke-style');
+        if (styleSelect) {
+            styleSelect.addEventListener('change', () => {
+                graph.updateEdge(edgeId, { properties: { strokeStyle: styleSelect.value } });
+            });
+        }
+
+        // Opacity
+        const opacitySlider = document.getElementById('prop-opacity');
+        const opacityVal = document.getElementById('prop-opacity-val');
+        if (opacitySlider && opacityVal) {
+            opacitySlider.addEventListener('input', () => {
+                opacityVal.textContent = `${Math.round(opacitySlider.value * 100)}%`;
+                graph.updateEdge(edgeId, { properties: { opacity: parseFloat(opacitySlider.value) } });
+            });
+        }
+
+        // Start Arrow
+        const startArrowSelect = document.getElementById('prop-start-arrow');
+        if (startArrowSelect) {
+            startArrowSelect.addEventListener('change', () => {
+                graph.updateEdge(edgeId, { properties: { startArrow: startArrowSelect.value } });
+            });
+        }
+
+        // End Arrow
+        const endArrowSelect = document.getElementById('prop-end-arrow');
+        if (endArrowSelect) {
+            endArrowSelect.addEventListener('change', () => {
+                graph.updateEdge(edgeId, { properties: { endArrow: endArrowSelect.value } });
+            });
+        }
+
+        // Condition
         const conditionInput = document.getElementById('prop-condition');
         if (conditionInput) {
             conditionInput.addEventListener('change', () => {
@@ -480,6 +641,7 @@ class PropertiesPanel {
             });
         }
 
+        // Delete
         const deleteBtn = document.getElementById('btn-delete-edge');
         if (deleteBtn) {
             deleteBtn.addEventListener('click', () => {

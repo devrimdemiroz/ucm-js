@@ -189,12 +189,13 @@ class SelectionManager {
         });
 
         // Add highlights to selected elements
+        // Use more specific selectors to target SVG elements, not hierarchy panel items
         this.selectedNodes.forEach(nodeId => {
-            const el = document.querySelector(`[data-node-id="${nodeId}"]`);
+            const el = document.querySelector(`.ucm-node[data-node-id="${nodeId}"]`);
             if (el) el.classList.add('selected');
         });
         this.selectedEdges.forEach(edgeId => {
-            const el = document.querySelector(`[data-edge-id="${edgeId}"]`);
+            const el = document.querySelector(`.ucm-edge-group[data-edge-id="${edgeId}"]`);
             if (el) el.classList.add('selected');
         });
 

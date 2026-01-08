@@ -150,6 +150,42 @@ class CanvasInteractions {
             }
         }
 
+        // Check virtual waypoints (Ghost Handles)
+        if (e.target.classList.contains('virtual-waypoint')) {
+            const virtualMarker = e.target;
+            const edgeGroup = virtualMarker.closest('.ucm-edge-group');
+            const edgeId = edgeGroup.getAttribute('data-edge-id');
+            const segmentIndex = parseInt(virtualMarker.getAttribute('data-segment-index'), 10);
+            const edge = graph.getEdge(edgeId);
+
+            if (edge) {
+                // Ensure selection
+                selection.selectEdge(edgeId);
+
+                // Create new control point at the virtual handle's position
+                const newPoints = edge.controlPoints ? [...edge.controlPoints] : [];
+                // The segmentIndex corresponds to where the new point sits in the array
+                // Segment 0 is between Source and P1 (or Target if no P1). 
+                // Insert at segmentIndex.
+                newPoints.splice(segmentIndex, 0, { x: point.x, y: point.y });
+
+                graph.updateEdge(edgeId, { controlPoints: newPoints });
+
+                // Start dragging this new point immediately
+                this.isDragging = true;
+                this.dragTarget = edgeId;
+                this.dragType = 'waypoint';
+                this.waypointIndex = segmentIndex; // The index we just inserted at
+                this.dragOffset = { x: 0, y: 0 };
+
+                // We need to find the REAL marker now to add the class, but it might not be rendered yet 
+                // in the DOM if we just updated the graph. 
+                // Ideally, we force a render or rely on the next frame, 
+                // but setting state is enough for 'handleMouseMove' to pick it up.
+                return;
+            }
+        }
+
         // Check resize handles
         if (e.target.classList.contains('resize-handle')) {
             const handle = e.target;
@@ -280,6 +316,9 @@ class CanvasInteractions {
 
                 // Check if dropped into component
                 this.handleNodeDropOnComponent(this.dragTarget);
+
+                // Check if dropped onto an edge (Split path)
+                this.handleNodeDropOnEdge(this.dragTarget);
             } else if (this.dragType === 'component') {
                 // Check if component dropped into another component
                 this.handleComponentDropOnComponent(this.dragTarget);
@@ -600,6 +639,76 @@ class CanvasInteractions {
         const projY = a.y + t * dy;
 
         return Math.sqrt((p.x - projX) ** 2 + (p.y - projY) ** 2);
+    }
+    /**
+     * Check if a node was dropped on an edge and split it
+     */
+    handleNodeDropOnEdge(nodeId) {
+        const node = graph.getNode(nodeId);
+        // Only allow certain nodes to split paths
+        if (!['responsibility', 'empty', 'timer', 'fork', 'join', 'stub'].includes(node.type)) return;
+
+        // If node is already connected, don't split (unless we support moving connected nodes)
+        if (node.inEdges.size > 0 || node.outEdges.size > 0) return;
+
+        const edges = graph.getAllEdges();
+        const p = node.position;
+        const threshold = 15; // Distance threshold
+
+        for (const edge of edges) {
+            const source = graph.getNode(edge.sourceNodeId);
+            const target = graph.getNode(edge.targetNodeId);
+            if (!source || !target) continue;
+
+            const allPoints = [source.position, ...(edge.controlPoints || []), target.position];
+
+            // Check each segment
+            for (let i = 0; i < allPoints.length - 1; i++) {
+                const p1 = allPoints[i];
+                const p2 = allPoints[i + 1];
+                const dist = this.pointToSegmentDistance(p, p1, p2);
+
+                if (dist < threshold) {
+                    // Snap node to edge for smooth alignment
+                    const snapped = this.projectPointToSegment(p, p1, p2);
+                    graph.moveNode(nodeId, snapped.x, snapped.y);
+
+                    // Split the edge!
+                    // 1. Divide control points
+                    const prePoints = (edge.controlPoints || []).slice(0, i);
+                    const postPoints = (edge.controlPoints || []).slice(i);
+
+                    // 2. Remove old edge
+                    graph.removeEdge(edge.id);
+
+                    // 3. Create new edges
+                    graph.addEdge(edge.sourceNodeId, nodeId, { controlPoints: prePoints });
+                    graph.addEdge(nodeId, edge.targetNodeId, { controlPoints: postPoints });
+
+                    // Re-render to show connections
+                    renderer.renderAll();
+                    return; // Only split one edge
+                }
+            }
+        }
+    }
+    /**
+     * Project a point onto a line segment
+     */
+    projectPointToSegment(p, a, b) {
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const l2 = dx * dx + dy * dy;
+
+        if (l2 === 0) return { x: a.x, y: a.y };
+
+        let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2;
+        t = Math.max(0, Math.min(1, t));
+
+        return {
+            x: a.x + t * dx,
+            y: a.y + t * dy
+        };
     }
 }
 

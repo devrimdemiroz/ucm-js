@@ -10,7 +10,7 @@
  */
 
 import { graph } from '../core/graph.js';
-import { createNodeSVG, createNodeLabel, createEdgeSVG, calculateEdgePath, getMidpoint, getAngle, NODE_TYPES, COMPONENT_TYPES, calculateIncomingAngle } from '../core/node-types.js';
+import { createNodeSVG, createNodeLabel, createEdgeSVG, calculateEdgePath, getMidpoint, getAngle, NODE_TYPES, COMPONENT_TYPES, calculateIncomingAngle, createArrowMarker } from '../core/node-types.js';
 import { tracing } from '../core/tracing.js';
 
 class CanvasRenderer {
@@ -287,33 +287,99 @@ class CanvasRenderer {
         const midPoint = getMidpoint(sourcePos, targetPos, edge.controlPoints);
         const angle = getAngle(sourcePos, targetPos, edge.controlPoints);
 
+        // Get edge style properties with defaults
+        const style = edge.properties || {};
+        const strokeColor = style.strokeColor || '#000000';
+        const strokeWidth = style.strokeWidth || 1.5;
+        const strokeStyle = style.strokeStyle || 'solid';
+        const opacity = style.opacity !== undefined ? style.opacity : 1;
+
         // Update Paths (Visual and Hit Area)
         const path = group.querySelector('.ucm-edge');
         const hitPath = group.querySelector('.edge-hit-area');
-        if (path) path.setAttribute('d', d);
+        if (path) {
+            path.setAttribute('d', d);
+            // Apply styling
+            path.setAttribute('stroke', strokeColor);
+            path.setAttribute('stroke-width', strokeWidth);
+            path.setAttribute('opacity', opacity);
+            // Apply stroke dash pattern
+            if (strokeStyle === 'dashed') {
+                path.setAttribute('stroke-dasharray', '8 4');
+            } else if (strokeStyle === 'dotted') {
+                path.setAttribute('stroke-dasharray', '2 4');
+            } else {
+                path.removeAttribute('stroke-dasharray');
+            }
+        }
         if (hitPath) hitPath.setAttribute('d', d);
 
         // Update Arrow
         const arrow = group.querySelector('.mid-arrow');
         if (arrow) {
             arrow.setAttribute('transform', `translate(${midPoint.x}, ${midPoint.y}) rotate(${angle})`);
+            arrow.setAttribute('fill', strokeColor);
+        }
+
+        // Update Start/End Arrow Markers
+        const startArrow = style.startArrow || 'none';
+        const endArrow = style.endArrow || 'none';
+
+        // Remove existing arrow markers
+        group.querySelectorAll('.edge-arrow-marker').forEach(el => el.remove());
+
+        // Add start arrow if specified
+        if (startArrow !== 'none') {
+            const startAngle = getAngle(targetPos, sourcePos, edge.controlPoints ? [...edge.controlPoints].reverse() : []);
+            const startArrowEl = createArrowMarker(startArrow, sourcePos, startAngle, strokeColor);
+            if (startArrowEl) group.appendChild(startArrowEl);
+        }
+
+        // Add end arrow if specified
+        if (endArrow !== 'none') {
+            const endArrowEl = createArrowMarker(endArrow, targetPos, angle, strokeColor);
+            if (endArrowEl) group.appendChild(endArrowEl);
         }
 
         // Update Waypoints (Re-render as count/position changes)
         // Clean up old waypoints
-        group.querySelectorAll('.waypoint-marker').forEach(el => el.remove());
+        group.querySelectorAll('.waypoint-marker, .virtual-waypoint').forEach(el => el.remove());
 
-        // Add current waypoints
-        if (edge.controlPoints && edge.controlPoints.length > 0) {
-            edge.controlPoints.forEach((cp, index) => {
-                const waypoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                waypoint.setAttribute('class', 'waypoint-marker');
-                waypoint.setAttribute('data-waypoint-index', index);
-                waypoint.setAttribute('cx', cp.x);
-                waypoint.setAttribute('cy', cp.y);
-                waypoint.setAttribute('r', 5);
-                group.appendChild(waypoint);
-            });
+        const controlPoints = edge.controlPoints || [];
+        const allPoints = [sourcePos, ...controlPoints, targetPos];
+
+        // 1. Render Real Waypoints
+        controlPoints.forEach((cp, index) => {
+            const waypoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            waypoint.setAttribute('class', 'waypoint-marker');
+            waypoint.setAttribute('data-waypoint-index', index);
+            waypoint.setAttribute('cx', cp.x);
+            waypoint.setAttribute('cy', cp.y);
+            waypoint.setAttribute('r', 5);
+            group.appendChild(waypoint);
+        });
+
+        // 2. Render Virtual Waypoints (Ghost Handles) if selected
+        if (group.classList.contains('selected')) {
+            for (let i = 0; i < allPoints.length - 1; i++) {
+                const p1 = allPoints[i];
+                const p2 = allPoints[i + 1];
+                const midX = (p1.x + p2.x) / 2;
+                const midY = (p1.y + p2.y) / 2;
+
+                const virtual = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                virtual.setAttribute('class', 'virtual-waypoint');
+                virtual.setAttribute('data-segment-index', i); // Index of the segment (insert new point at this index)
+                virtual.setAttribute('cx', midX);
+                virtual.setAttribute('cy', midY);
+                virtual.setAttribute('r', 4);
+                // Style handled in CSS, but fallback here
+                virtual.setAttribute('fill', '#29b6f6');
+                virtual.setAttribute('fill-opacity', '0.5');
+                virtual.setAttribute('stroke', 'none');
+                virtual.style.cursor = 'pointer';
+                group.appendChild(virtual);
+            }
         }
 
         // If target is an end node, re-render it to update bar rotation
@@ -356,6 +422,11 @@ class CanvasRenderer {
         const edgeSVG = this.layers.edges.querySelector(`[data-edge-id="${edgeId}"]`);
         if (edgeSVG) {
             edgeSVG.classList.toggle('selected', highlight);
+            // Re-render to show/hide virtual waypoints based on selection state
+            const edge = graph.getEdge(edgeId);
+            if (edge) {
+                this.updateEdgeRender(edge);
+            }
         }
     }
 

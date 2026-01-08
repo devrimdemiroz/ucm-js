@@ -7,6 +7,7 @@ import { canvas } from '../editor/canvas.js';
 import { serializer } from '../core/serializer.js';
 import { parser } from '../core/parser.js';
 import { notifications } from './notifications.js';
+import { debounce } from '../utils/debounce.js';
 
 class DslPanel {
     constructor() {
@@ -15,6 +16,9 @@ class DslPanel {
         this.statusEl = null;
         this.errorListEl = null;
         this.isUpdatingFromGraph = false;
+
+        // Debounce the update to avoid lagging during drag operations
+        this.updateFromGraphDebounced = debounce(this.updateFromGraph.bind(this), 500);
     }
 
     init() {
@@ -38,22 +42,22 @@ class DslPanel {
         });
 
         // Update DSL when graph changes
-        graph.on('node:added', () => this.updateFromGraph());
-        graph.on('node:updated', () => this.updateFromGraph());
-        graph.on('node:removed', () => this.updateFromGraph());
-        graph.on('component:added', () => this.updateFromGraph());
-        graph.on('component:updated', () => this.updateFromGraph());
-        graph.on('component:removed', () => this.updateFromGraph());
-        graph.on('edge:added', () => this.updateFromGraph());
-        graph.on('edge:removed', () => this.updateFromGraph());
-        graph.on('graph:loaded', () => this.updateFromGraph());
-        graph.on('graph:cleared', () => this.updateFromGraph());
+        graph.on('node:added', () => this.updateFromGraphDebounced());
+        graph.on('node:updated', () => this.updateFromGraphDebounced());
+        graph.on('node:removed', () => this.updateFromGraphDebounced());
+        graph.on('component:added', () => this.updateFromGraphDebounced());
+        graph.on('component:updated', () => this.updateFromGraphDebounced());
+        graph.on('component:removed', () => this.updateFromGraphDebounced());
+        graph.on('edge:added', () => this.updateFromGraphDebounced());
+        graph.on('edge:removed', () => this.updateFromGraphDebounced());
+        graph.on('graph:loaded', () => this.updateFromGraphDebounced());
+        graph.on('graph:cleared', () => this.updateFromGraphDebounced());
 
         // Setup drag & drop for .ucm files
         this.setupDragDrop();
 
         // Initial update
-        this.updateFromGraph();
+        this.updateFromGraphDebounced();
     }
 
     createErrorList() {

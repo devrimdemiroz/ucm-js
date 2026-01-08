@@ -323,6 +323,7 @@ export function createNodeLabel(node, offsetY = 25) {
 
 /**
  * Create SVG path for an edge with rounded corners and waypoint markers
+ * Now supports custom edge styling (draw.io-like properties)
  */
 export function createEdgeSVG(edge, sourceNode, targetNode) {
     // Handle backward compatibility if sourceNode is just a position (no type)
@@ -330,6 +331,15 @@ export function createEdgeSVG(edge, sourceNode, targetNode) {
     const targetPos = targetNode.position || targetNode;
     const sourceType = sourceNode.type;
     const targetType = targetNode.type;
+
+    // Get edge style properties with defaults
+    const style = edge.properties || {};
+    const strokeColor = style.strokeColor || '#000000';
+    const strokeWidth = style.strokeWidth || 1.5;
+    const strokeStyle = style.strokeStyle || 'solid';
+    const opacity = style.opacity !== undefined ? style.opacity : 1;
+    const startArrow = style.startArrow || 'none';
+    const endArrow = style.endArrow || 'none';
 
     const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     group.setAttribute('class', 'ucm-edge-group');
@@ -349,15 +359,41 @@ export function createEdgeSVG(edge, sourceNode, targetNode) {
     const angle = getAngle(sourcePos, targetPos, edge.controlPoints);
 
     path.setAttribute('d', d);
+
+    // Apply custom styling
+    path.setAttribute('stroke', strokeColor);
+    path.setAttribute('stroke-width', strokeWidth);
+    path.setAttribute('opacity', opacity);
+
+    // Apply stroke dash pattern
+    if (strokeStyle === 'dashed') {
+        path.setAttribute('stroke-dasharray', '8 4');
+    } else if (strokeStyle === 'dotted') {
+        path.setAttribute('stroke-dasharray', '2 4');
+    }
+
     group.appendChild(path);
 
-    // Midpoint Arrow
+    // Midpoint Arrow (UCM standard flow direction indicator)
     const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     arrow.setAttribute('class', 'mid-arrow');
     arrow.setAttribute('d', 'M -6 -4 L 4 0 L -6 4 Z');
     arrow.setAttribute('transform', `translate(${midPoint.x}, ${midPoint.y}) rotate(${angle})`);
-    arrow.setAttribute('fill', '#000');
+    arrow.setAttribute('fill', strokeColor);
     group.appendChild(arrow);
+
+    // Start arrow (at source)
+    if (startArrow !== 'none') {
+        const startAngle = getAngle(targetPos, sourcePos, edge.controlPoints ? [...edge.controlPoints].reverse() : []);
+        const startArrowEl = createArrowMarker(startArrow, sourcePos, startAngle, strokeColor);
+        if (startArrowEl) group.appendChild(startArrowEl);
+    }
+
+    // End arrow (at target)
+    if (endArrow !== 'none') {
+        const endArrowEl = createArrowMarker(endArrow, targetPos, angle, strokeColor);
+        if (endArrowEl) group.appendChild(endArrowEl);
+    }
 
     // Add visible waypoint markers (draw.io style) - rendered BEFORE hit area
     if (edge.controlPoints && edge.controlPoints.length > 0) {
@@ -373,17 +409,71 @@ export function createEdgeSVG(edge, sourceNode, targetNode) {
     }
 
     // Add invisible wide hit area for easier selection - ON TOP of visual elements
+    // Use 'transparent' stroke with pointer-events: stroke to catch clicks on invisible path
     const hitPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     hitPath.setAttribute('d', d);
     hitPath.setAttribute('fill', 'none');
-    hitPath.setAttribute('stroke', 'rgba(0,0,0,0)'); // Use alpha 0 instead of transparent keyword
+    hitPath.setAttribute('stroke', 'white');
+    hitPath.setAttribute('stroke-opacity', '0');
     hitPath.setAttribute('stroke-width', '20');
     hitPath.setAttribute('class', 'edge-hit-area');
-    hitPath.style.pointerEvents = 'stroke'; // Ensure stroke catches events
+    hitPath.setAttribute('pointer-events', 'stroke'); // SVG attribute, not style
     hitPath.style.cursor = 'pointer';
     group.appendChild(hitPath);
 
     return group;
+}
+
+/**
+ * Create an arrow marker at a given position
+ * Supports multiple arrow styles: triangle, open, diamond, circle
+ */
+export function createArrowMarker(arrowType, position, angle, color) {
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('class', 'edge-arrow-marker');
+    g.setAttribute('transform', `translate(${position.x}, ${position.y}) rotate(${angle})`);
+
+    let pathData;
+    let fill = color;
+    let stroke = 'none';
+
+    switch (arrowType) {
+        case 'triangle':
+            // Filled triangle arrow
+            pathData = 'M -10 -6 L 0 0 L -10 6 Z';
+            break;
+        case 'open':
+            // Open/hollow triangle arrow
+            pathData = 'M -10 -6 L 0 0 L -10 6';
+            fill = 'none';
+            stroke = color;
+            break;
+        case 'diamond':
+            // Diamond shape
+            pathData = 'M -12 0 L -6 -5 L 0 0 L -6 5 Z';
+            break;
+        case 'circle':
+            // Circle marker
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', '-5');
+            circle.setAttribute('cy', '0');
+            circle.setAttribute('r', '4');
+            circle.setAttribute('fill', color);
+            g.appendChild(circle);
+            return g;
+        default:
+            return null;
+    }
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', pathData);
+    path.setAttribute('fill', fill);
+    if (stroke !== 'none') {
+        path.setAttribute('stroke', stroke);
+        path.setAttribute('stroke-width', '1.5');
+    }
+    g.appendChild(path);
+    return g;
 }
 
 /**
@@ -433,11 +523,17 @@ export function calculateEdgePath(source, target, controlPoints = [], options = 
         // by adding intermediate waypoints if needed
     }
 
-    // Direct line if still no waypoints
+    // Use smooth splines for manually edited paths (when control points act as waypoints)
+    if (controlPoints.length > 0) {
+        return getSmoothPath([source, ...controlPoints, target]);
+    }
+
+    // Direct line if still no waypoints (and no auto-routing)
     if (effectivePoints.length === 0) {
         return `M ${source.x} ${source.y} L ${target.x} ${target.y}`;
     }
 
+    // ... (Existing Metro/Octilinear logic for auto-routing) ...
     // Radius for rounded corners (adjustable)
     const radius = 15;
 
@@ -482,6 +578,32 @@ export function calculateEdgePath(source, target, controlPoints = [], options = 
     // Final line to target
     d += ` L ${target.x} ${target.y}`;
 
+    return d;
+}
+
+/**
+ * Generate a smooth Catmull-Rom spline through points
+ */
+function getSmoothPath(points) {
+    if (points.length < 2) return "";
+    let d = `M ${points[0].x} ${points[0].y}`;
+
+    // Catmull-Rom to Cubic Bezier conversion
+    // For each segment p1->p2, we need p0 (prev) and p3 (next)
+    for (let i = 0; i < points.length - 1; i++) {
+        const p0 = points[i - 1] || points[i];
+        const p1 = points[i];
+        const p2 = points[i + 1];
+        const p3 = points[i + 2] || p2;
+
+        const cp1x = p1.x + (p2.x - p0.x) / 6;
+        const cp1y = p1.y + (p2.y - p0.y) / 6;
+
+        const cp2x = p2.x - (p3.x - p1.x) / 6;
+        const cp2y = p2.y - (p3.y - p1.y) / 6;
+
+        d += ` C ${cp1x} ${cp1y} ${cp2x} ${cp2y} ${p2.x} ${p2.y}`;
+    }
     return d;
 }
 

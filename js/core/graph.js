@@ -6,6 +6,17 @@
 import { tracing } from './tracing.js';
 import { notifications } from '../ui/notifications.js';
 
+// Default edge style properties (draw.io-like)
+export const DEFAULT_EDGE_STYLE = {
+    strokeColor: '#000000',      // Line color
+    strokeWidth: 1.5,            // Line thickness (1-8)
+    strokeStyle: 'solid',        // 'solid' | 'dashed' | 'dotted'
+    startArrow: 'none',          // 'none' | 'triangle' | 'open' | 'diamond' | 'circle'
+    endArrow: 'none',            // Arrow at target (UCM uses midpoint arrow by default)
+    rounded: true,               // Rounded corners on path
+    opacity: 1                   // Line opacity (0-1)
+};
+
 export class UCMGraph {
     constructor() {
         this.nodes = new Map();
@@ -113,8 +124,8 @@ export class UCMGraph {
         const node = this.nodes.get(id);
         if (!node) return false;
 
-        // Path Healing: If node has exactly one in-edge and one out-edge, connect them
-        // Using .size because inEdges and outEdges are Sets
+        // Path Healing Data Capture
+        let healAction = null;
         if (node.inEdges.size === 1 && node.outEdges.size === 1) {
             const inEdgeId = [...node.inEdges][0];
             const outEdgeId = [...node.outEdges][0];
@@ -122,24 +133,28 @@ export class UCMGraph {
             const outEdge = this.edges.get(outEdgeId);
 
             if (inEdge && outEdge) {
-                const sourceId = inEdge.sourceNodeId;
-                const targetId = outEdge.targetNodeId;
-
-                // Merge control points (waypoints) if any
-                const controlPoints = [
-                    ...(inEdge.controlPoints || []),
-                    { x: node.position.x, y: node.position.y }, // Keep deleted node's position as a waypoint
-                    ...(outEdge.controlPoints || [])
-                ];
-
-                this.addEdge(sourceId, targetId, { controlPoints });
+                healAction = {
+                    sourceId: inEdge.sourceNodeId,
+                    targetId: outEdge.targetNodeId,
+                    controlPoints: [
+                        ...(inEdge.controlPoints || []),
+                        ...(outEdge.controlPoints || [])
+                    ]
+                };
             }
         }
 
-        // Remove connected edges
+        // Remove connected edges FIRST to avoid constraint violations (e.g. Start node 1 out-edge limit)
         [...node.inEdges, ...node.outEdges].forEach(edgeId => {
             this.removeEdge(edgeId);
         });
+
+        // Perform Healing (Add new edge)
+        if (healAction) {
+            this.addEdge(healAction.sourceId, healAction.targetId, {
+                controlPoints: healAction.controlPoints
+            });
+        }
 
         this.nodes.delete(id);
         this.emit('node:removed', { id });
@@ -199,6 +214,8 @@ export class UCMGraph {
             controlPoints: properties.controlPoints || [],
             condition: properties.condition || null,
             properties: {
+                // Apply default edge styles, then override with any provided properties
+                ...DEFAULT_EDGE_STYLE,
                 ...properties
             }
         };

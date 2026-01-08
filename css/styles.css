@@ -4,20 +4,25 @@
 
 /* ============================================
    Base Edge Styles - CRITICAL: fill: none prevents SVG paths from being filled
+   Stroke/width set as defaults, inline styles from edge properties can override
    ============================================ */
 .ucm-edge {
     fill: none !important;
+    /* Default stroke - can be overridden by inline styles from edge.properties */
     stroke: #000000;
     stroke-width: 1.5;
     stroke-linecap: round;
     stroke-linejoin: round;
+    transition: stroke 0.15s ease, stroke-width 0.15s ease, opacity 0.15s ease;
 }
 
-/* Edge hit area for easier selection */
+/* Edge hit area for easier selection - transparent but clickable stroke */
 .edge-hit-area,
 .hit-area {
     fill: none !important;
-    stroke: none !important;
+    stroke: transparent !important;
+    stroke-width: 20px !important;
+    pointer-events: stroke !important;
     cursor: pointer;
 }
 
