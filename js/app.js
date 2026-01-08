@@ -15,6 +15,7 @@ import { tooltip } from './ui/tooltip.js';
 import { settingsPanel } from './ui/settings-panel.js';
 import { aiChat } from './ui/ai-chat.js';
 import { actionsPanel } from './ui/actions-panel.js';
+import { scenarioPanel } from './ui/scenario-panel.js';
 import { tracing } from './core/tracing.js';
 import { fileLoader } from './core/file-loader.js';
 import { keyboard } from './ui/keyboard.js';
@@ -44,6 +45,7 @@ class UCMEditor {
         hierarchyPanel.init();
         propertiesPanel.init();
         actionsPanel.init();
+        scenarioPanel.init();
         history.init();
         settingsPanel.init();
         aiChat.init();

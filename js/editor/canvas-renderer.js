@@ -583,6 +583,119 @@ class CanvasRenderer {
         const ghostNode = this.layers.selection.querySelector('.ghost-node');
         if (ghostNode) ghostNode.remove();
     }
+
+    // ============================================
+    // Scenario Path Highlighting
+    // ============================================
+
+    /**
+     * Highlight a scenario path (traversed nodes and edges)
+     * @param {Object} pathData - { nodes: [], edges: [], color: string, endNodes: [] }
+     */
+    highlightScenarioPath(pathData) {
+        this.clearScenarioHighlight();
+
+        if (!pathData) return;
+
+        const { nodes = [], edges = [], color = '#ff6b6b', endNodes = [] } = pathData;
+
+        // Create a highlight layer group
+        let highlightGroup = this.layers.selection.querySelector('.scenario-highlight-group');
+        if (!highlightGroup) {
+            highlightGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            highlightGroup.setAttribute('class', 'scenario-highlight-group');
+            // Insert at the beginning so it's behind selection indicators
+            this.layers.selection.insertBefore(highlightGroup, this.layers.selection.firstChild);
+        }
+
+        // Highlight edges (draw colored overlay paths)
+        edges.forEach(edgeId => {
+            const edge = graph.getEdge(edgeId);
+            if (!edge) return;
+
+            const edgeGroup = this.layers.edges.querySelector(`[data-edge-id="${edgeId}"]`);
+            if (!edgeGroup) return;
+
+            const originalPath = edgeGroup.querySelector('.ucm-edge');
+            if (!originalPath) return;
+
+            // Create highlight path overlay
+            const highlightPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            highlightPath.setAttribute('class', 'scenario-edge-highlight');
+            highlightPath.setAttribute('d', originalPath.getAttribute('d'));
+            highlightPath.setAttribute('stroke', color);
+            highlightPath.setAttribute('stroke-width', '4');
+            highlightPath.setAttribute('fill', 'none');
+            highlightPath.setAttribute('opacity', '0.6');
+            highlightPath.setAttribute('stroke-linecap', 'round');
+            highlightPath.setAttribute('data-scenario-edge', edgeId);
+            highlightGroup.appendChild(highlightPath);
+        });
+
+        // Highlight nodes (add colored rings)
+        nodes.forEach(nodeId => {
+            const node = graph.getNode(nodeId);
+            if (!node) return;
+
+            const isEndNode = endNodes.includes(nodeId);
+            const isStartNode = node.type === 'start';
+
+            // Create highlight ring
+            const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            ring.setAttribute('class', 'scenario-node-highlight');
+            ring.setAttribute('cx', node.position.x);
+            ring.setAttribute('cy', node.position.y);
+            ring.setAttribute('r', isStartNode || isEndNode ? '18' : '14');
+            ring.setAttribute('fill', 'none');
+            ring.setAttribute('stroke', color);
+            ring.setAttribute('stroke-width', isEndNode ? '4' : '3');
+            ring.setAttribute('opacity', isEndNode ? '0.9' : '0.6');
+            ring.setAttribute('data-scenario-node', nodeId);
+
+            // Add pulse animation for start/end nodes
+            if (isStartNode || isEndNode) {
+                ring.setAttribute('class', 'scenario-node-highlight scenario-pulse');
+            }
+
+            highlightGroup.appendChild(ring);
+        });
+
+        // Add markers for reached end nodes
+        endNodes.forEach(nodeId => {
+            const node = graph.getNode(nodeId);
+            if (!node) return;
+
+            // Add checkmark or success indicator
+            const marker = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            marker.setAttribute('class', 'scenario-end-marker');
+            marker.setAttribute('x', node.position.x + 20);
+            marker.setAttribute('y', node.position.y - 15);
+            marker.setAttribute('fill', color);
+            marker.setAttribute('font-size', '16');
+            marker.setAttribute('font-weight', 'bold');
+            marker.textContent = '✓';
+            highlightGroup.appendChild(marker);
+        });
+    }
+
+    /**
+     * Clear scenario highlighting
+     */
+    clearScenarioHighlight() {
+        const highlightGroup = this.layers.selection.querySelector('.scenario-highlight-group');
+        if (highlightGroup) {
+            highlightGroup.innerHTML = '';
+        }
+    }
+
+    /**
+     * Update scenario highlight when nodes/edges move
+     */
+    updateScenarioHighlight(pathData) {
+        if (pathData) {
+            this.highlightScenarioPath(pathData);
+        }
+    }
 }
 
 export const renderer = new CanvasRenderer();

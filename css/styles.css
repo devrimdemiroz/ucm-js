@@ -1094,6 +1094,78 @@ body.hide-labels .component-label {
     display: none;
 }
 
+/* ============================================
+   Scenario Path Highlighting
+   ============================================ */
+
+/* Scenario highlight group container */
+.scenario-highlight-group {
+    pointer-events: none;
+}
+
+/* Scenario edge highlight - colored path overlay */
+.scenario-edge-highlight {
+    pointer-events: none;
+    animation: scenarioFadeIn 0.3s ease-out;
+}
+
+/* Scenario node highlight - colored ring around nodes */
+.scenario-node-highlight {
+    pointer-events: none;
+    animation: scenarioFadeIn 0.3s ease-out;
+}
+
+/* Pulsing animation for start/end nodes in scenario */
+.scenario-pulse {
+    animation: scenarioPulse 1.5s ease-in-out infinite;
+}
+
+/* Scenario end marker (checkmark) */
+.scenario-end-marker {
+    pointer-events: none;
+    animation: scenarioCheckIn 0.4s ease-out;
+}
+
+@keyframes scenarioFadeIn {
+    from {
+        opacity: 0;
+        stroke-width: 0;
+    }
+    to {
+        opacity: 0.6;
+    }
+}
+
+@keyframes scenarioPulse {
+    0%, 100% {
+        opacity: 0.6;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.9;
+        transform: scale(1.05);
+    }
+}
+
+@keyframes scenarioCheckIn {
+    0% {
+        opacity: 0;
+        transform: scale(0);
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Transit mode scenario highlighting - thicker paths */
+.transit-mode .scenario-edge-highlight {
+    stroke-width: 8 !important;
+}
+
 /* Ghost Elements */
 .ghost-path {
     stroke: var(--text-muted);
@@ -1345,6 +1417,200 @@ body.hide-labels .component-label {
     stroke-width: 3 !important;
     stroke-dasharray: none !important;
     filter: drop-shadow(0 0 6px var(--selection-color)) !important;
+}
+
+/* ============================================
+   Scenario Panel
+   ============================================ */
+
+.scenario-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 12px;
+}
+
+.scenario-panel .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.scenario-panel .panel-header h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.scenario-panel .panel-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.scenario-panel .btn-icon {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.scenario-panel .btn-icon:hover {
+    background: var(--accent-primary);
+    color: white;
+}
+
+.scenario-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.scenario-item {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.scenario-item:hover {
+    border-color: var(--accent-primary);
+}
+
+.scenario-item.active {
+    border-color: var(--accent-primary);
+    background: rgba(41, 182, 246, 0.1);
+}
+
+.scenario-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.scenario-status {
+    font-size: 12px;
+}
+
+.scenario-status.success {
+    color: #27ae60;
+}
+
+.scenario-status.warning {
+    color: #f39c12;
+}
+
+.scenario-name {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.scenario-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+.scenario-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+}
+
+.scenario-actions .btn-small {
+    padding: 4px 8px;
+    font-size: 11px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+}
+
+.scenario-actions .btn-small:hover {
+    background: var(--accent-primary);
+    color: white;
+}
+
+.scenario-actions .btn-run {
+    background: #27ae60;
+    color: white;
+}
+
+.scenario-actions .btn-run:hover {
+    background: #229954;
+}
+
+.scenario-actions .btn-delete:hover {
+    background: #e74c3c;
+    color: white;
+}
+
+.traversal-info {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border-light);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.traversal-info .success {
+    color: #27ae60;
+}
+
+.traversal-errors {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.traversal-errors .error {
+    color: #e74c3c;
+    font-size: 10px;
+}
+
+.scenario-panel .empty-state {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-muted);
+}
+
+.scenario-panel .empty-state p {
+    margin: 4px 0;
+}
+
+.scenario-panel .hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.scenario-info {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
 }
 
 /* ============================================
