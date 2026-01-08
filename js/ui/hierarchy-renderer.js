@@ -104,6 +104,11 @@ export function renderPathTreeItem(item, expandedGroups) {
         return renderNodeItem(item.node);
     }
 
+    // If it's an edge segment
+    if (item.type === 'edge') {
+        return renderEdgeItem(item.edge);
+    }
+
     // Loop reference
     if (item.type === 'ref') {
         return `
@@ -134,6 +139,27 @@ export function renderNodeItem(node) {
             <span class="tree-icon ${node.type}">${typeInfo?.icon || '•'}</span>
             <span class="tree-label">${node.properties.name || node.id}</span>
             ${pinnedInfo}
+        </div>
+    `;
+}
+
+/**
+ * Render a single edge item
+ * @param {Object} edge - The edge to render
+ * @returns {string} HTML string
+ */
+export function renderEdgeItem(edge) {
+    const hasWaypoints = edge.controlPoints && edge.controlPoints.length > 0;
+    const waypointInfo = hasWaypoints
+        ? `<span class="edge-waypoints" title="${edge.controlPoints.length} Waypoints">📍${edge.controlPoints.length}</span>`
+        : '';
+
+    return `
+        <div class="tree-item" data-edge-id="${edge.id}">
+            <span class="tree-toggle" style="visibility: hidden;">▶</span>
+            <span class="tree-icon edge">⤳</span>
+            <span class="tree-label">Segment</span>
+            ${waypointInfo}
         </div>
     `;
 }

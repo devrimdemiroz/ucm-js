@@ -113,9 +113,12 @@ export class UCMGraph {
         if (!node) return false;
 
         // Path Healing: If node has exactly one in-edge and one out-edge, connect them
-        if (node.inEdges.length === 1 && node.outEdges.length === 1) {
-            const inEdge = this.edges.get(node.inEdges[0]);
-            const outEdge = this.edges.get(node.outEdges[0]);
+        // Using .size because inEdges and outEdges are Sets
+        if (node.inEdges.size === 1 && node.outEdges.size === 1) {
+            const inEdgeId = [...node.inEdges][0];
+            const outEdgeId = [...node.outEdges][0];
+            const inEdge = this.edges.get(inEdgeId);
+            const outEdge = this.edges.get(outEdgeId);
 
             if (inEdge && outEdge) {
                 const sourceId = inEdge.sourceNodeId;

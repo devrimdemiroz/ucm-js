@@ -62,8 +62,21 @@ function traceSegment(startNode, visitedNodes) {
             break;
         } else if (outEdges.length === 1) {
             // Linear flow
-            const edge = graph.getEdge(outEdges[0]);
-            current = edge ? graph.getNode(edge.targetNodeId) : null;
+            const edgeId = outEdges[0];
+            const edge = graph.getEdge(edgeId);
+
+            // Add edge segment to tree
+            if (edge) {
+                result.push({
+                    type: 'edge',
+                    edge: edge,
+                    id: `edge_${edge.id}`,
+                    name: 'Segment'
+                });
+                current = graph.getNode(edge.targetNodeId);
+            } else {
+                current = null;
+            }
         } else {
             // Forking logic (DAG split)
             outEdges.forEach((edgeId, idx) => {

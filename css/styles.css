@@ -730,8 +730,14 @@ input:checked+.slider:before {
 }
 
 .tree-item.selected {
-    background: var(--bg-active);
-    font-weight: 500;
+    background: var(--selection-color);
+    color: white !important;
+    font-weight: 600;
+}
+
+.tree-item.selected .tree-icon,
+.tree-item.selected .tree-label {
+    color: white !important;
 }
 
 .tree-toggle {
@@ -947,10 +953,14 @@ input:checked+.slider:before {
 /* Selection Box (New Bounding Box Highlight) */
 .selection-box {
     display: none;
-    fill: rgba(33, 150, 243, 0.1);
+    fill: rgba(41, 182, 246, 0.15);
+    /* Slightly darker tint */
     stroke: var(--selection-color);
-    stroke-width: 1.5;
-    stroke-dasharray: 4 2;
+    stroke-width: 2.5;
+    /* Sharper border */
+    stroke-dasharray: none;
+    /* Solid line for clear border */
+    filter: drop-shadow(0 0 4px var(--selection-glow));
     pointer-events: none;
 }
 
@@ -983,7 +993,21 @@ input:checked+.slider:before {
 /* Responsibility X-mark selection */
 .ucm-node.selected.node-responsibility line.classic-x {
     stroke: var(--selection-color) !important;
+    stroke-width: 4 !important;
+}
+
+/* Edge Selection Enhanced */
+.ucm-edge-group.selected .ucm-edge {
+    stroke: var(--selection-color) !important;
     stroke-width: 3 !important;
+    filter: drop-shadow(0 0 6px var(--selection-glow)) !important;
+}
+
+.transit-mode .ucm-edge-group.selected .ucm-edge {
+    stroke: var(--selection-color) !important;
+    stroke-width: 10px !important;
+    /* Stand out in thick transit segments */
+    stroke-opacity: 0.8;
 }
 
 /* Waypoint Markers (Enhanced Visibility) */
@@ -1130,9 +1154,12 @@ body.hide-labels .component-label {
 
 .ucm-component.selected rect:first-child {
     stroke: var(--selection-color);
-    stroke-width: 2;
+    stroke-width: 3;
+    fill: rgba(41, 182, 246, 0.1);
+    /* Background tint for selected component */
     /* Solid line for selection */
     stroke-dasharray: none;
+    filter: drop-shadow(0 0 8px var(--selection-glow));
 }
 
 /* ============================================

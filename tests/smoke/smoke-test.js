@@ -118,6 +118,31 @@ class SmokeTestRunner {
         }
     }
 
+    async enableObservability() {
+        console.log('\n👁️ Enabling Observability...');
+        try {
+            // Click settings tab to make sure it's rendered/visible
+            await this.page.click('button[data-tab="settings"]');
+            await this.wait(200);
+
+            // Enable observability
+            const isChecked = await this.page.$eval('#setting-observability', el => el.checked);
+            if (!isChecked) {
+                await this.page.click('#setting-observability');
+                this.pass('Observability enabled via Settings');
+            } else {
+                this.pass('Observability already enabled');
+            }
+
+            // Switch back to hierarchy
+            await this.page.click('button[data-tab="hierarchy"]');
+            await this.wait(200);
+        } catch (error) {
+            console.warn('  ⚠️ Failed to enable observability:', error.message);
+            // Don't fail the test suite for this, just warn
+        }
+    }
+
     async testGraphOperations() {
         console.log('\n📊 Testing Graph Operations...');
 
@@ -765,6 +790,7 @@ class SmokeTestRunner {
 
             // Core functionality tests
             await this.testApplicationLoads();
+            await this.enableObservability(); // Enable tracing
             await this.testGraphOperations();
             await this.testComponentSystem();
 

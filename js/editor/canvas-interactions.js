@@ -432,7 +432,7 @@ class CanvasInteractions {
             this.svg.style.cursor = 'grab';
         }
 
-        // ESC to cancel path creation or deselect
+        // ESC to cancel path creation or deselect - Kept here for specific tool state handling
         if (e.key === 'Escape') {
             if (selection.currentTool === 'path' && selection.pathCreation.active) {
                 selection.finishPath();
@@ -441,50 +441,6 @@ class CanvasInteractions {
             }
             renderer.hideGhostLine();
             renderer.hideGhostNode();
-        }
-
-        // Delete selected elements
-        if (e.key === 'Delete' || e.key === 'Backspace') {
-            if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
-                selection.deleteSelected();
-            }
-        }
-
-        // Tool shortcuts and other keyboard handling
-        if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
-            if (e.key === 'v' || e.key === 'V') selection.setTool('select');
-            if (e.key === 'p' || e.key === 'P') selection.setTool('path');
-            if (e.key === 'c' || e.key === 'C') selection.setTool('component');
-
-            // Undo/Redo
-            if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
-                e.preventDefault();
-                if (e.shiftKey) {
-                    import('../core/history.js').then(({ history }) => history.redo());
-                } else {
-                    import('../core/history.js').then(({ history }) => history.undo());
-                }
-            }
-            if ((e.metaKey || e.ctrlKey) && e.key === 'y') {
-                e.preventDefault();
-                import('../core/history.js').then(({ history }) => history.redo());
-            }
-
-            // Zoom Shortcuts
-            if (e.metaKey || e.ctrlKey) {
-                if (e.key === '=' || e.key === '+') {
-                    e.preventDefault();
-                    transforms.zoomIn();
-                }
-                if (e.key === '-') {
-                    e.preventDefault();
-                    transforms.zoomOut();
-                }
-                if (e.key === '0') {
-                    e.preventDefault();
-                    transforms.fitToWindow();
-                }
-            }
         }
     }
 

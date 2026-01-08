@@ -282,6 +282,19 @@ class HierarchyPanel {
                 });
             });
         });
+
+        // Select edges
+        this.container.querySelectorAll('.tree-item[data-edge-id]').forEach(item => {
+            this.attachEdgeEventListener(item, item.dataset.edgeId);
+        });
+    }
+
+    attachEdgeEventListener(element, edgeId) {
+        element.addEventListener('click', (e) => {
+            e.stopPropagation();
+            selection.selectEdge(edgeId);
+            // Optionally center on edge midpoint if needed
+        });
     }
 
     attachNodeEventListener(element, nodeId) {
@@ -355,6 +368,14 @@ class HierarchyPanel {
             this.revealNodeInTree(nodeId);
 
             const item = this.container?.querySelector(`[data-node-id="${nodeId}"]`);
+            if (item) {
+                item.classList.add('selected');
+                if (!firstSelectedItem) firstSelectedItem = item;
+            }
+        });
+
+        selection.selectedEdges.forEach(edgeId => {
+            const item = this.container?.querySelector(`[data-edge-id="${edgeId}"]`);
             if (item) {
                 item.classList.add('selected');
                 if (!firstSelectedItem) firstSelectedItem = item;
