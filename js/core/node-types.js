@@ -105,6 +105,10 @@ export const NODE_TYPES = {
     }
 };
 
+// Minimum run-out distance from responsibility/timer nodes before a path can turn
+// This ensures cleaner, more professional-looking routes
+export const NODE_EXIT_PADDING = 30;
+
 export const COMPONENT_TYPES = {
     team: {
         name: 'Team',
@@ -508,24 +512,45 @@ export function getAngle(source, target, controlPoints) {
  * Calculate SVG path string for an edge
  * Uses rounded corners at waypoints (draw.io style)
  * Supports octilinear routing for metro-map style paths
+ * 
+ * Adds automatic "padding waypoints" near responsibility/timer nodes
+ * to ensure a minimum run-out distance before any turn can occur.
+ * These padding waypoints are invisible (not selectable).
  */
 export function calculateEdgePath(source, target, controlPoints = [], options = {}) {
     const mode = options.routingMode || currentRoutingMode;
+    const sourceType = options.sourceType;
+    const targetType = options.targetType;
+
+    // Calculate direction from source to target (or first waypoint)
+    const nextPoint = controlPoints.length > 0 ? controlPoints[0] : target;
+    const prevPoint = controlPoints.length > 0 ? controlPoints[controlPoints.length - 1] : source;
+
+    // Generate automatic padding waypoints for nodes that need run-out distance
+    const paddingWaypoints = addPaddingWaypoints(source, target, controlPoints, sourceType, targetType);
 
     // Always generate octilinear waypoints - every edge gets proper routing
     let effectivePoints = controlPoints;
     if (mode !== ROUTING_MODES.freeform) {
         // If no manual waypoints, auto-generate
-        if (controlPoints.length === 0) {
-            effectivePoints = generateOctilinearRoute(source, target, mode, options.sourceType, options.targetType);
+        if (controlPoints.length === 0 && paddingWaypoints.length === 0) {
+            effectivePoints = generateOctilinearRoute(source, target, mode, sourceType, targetType);
+        } else if (controlPoints.length === 0 && paddingWaypoints.length > 0) {
+            // Use padding waypoints only
+            effectivePoints = paddingWaypoints;
         }
-        // If manual waypoints exist, ensure each segment is octilinear
-        // by adding intermediate waypoints if needed
+        // If manual waypoints exist, use them with padding
     }
 
-    // Use smooth splines for manually edited paths (when control points act as waypoints)
+    // Combine padding waypoints with control points for smooth paths
     if (controlPoints.length > 0) {
-        return getSmoothPath([source, ...controlPoints, target]);
+        // Add padding to manual control points
+        const allPoints = [...paddingWaypoints.filter(p => p.position === 'start'),
+        ...controlPoints,
+        ...paddingWaypoints.filter(p => p.position === 'end')];
+        // Filter out position metadata
+        const cleanPoints = allPoints.map(p => ({ x: p.x, y: p.y }));
+        return getSmoothPath([source, ...cleanPoints, target]);
     }
 
     // Direct line if still no waypoints (and no auto-routing)
@@ -579,6 +604,75 @@ export function calculateEdgePath(source, target, controlPoints = [], options = 
     d += ` L ${target.x} ${target.y}`;
 
     return d;
+}
+
+/**
+ * Add automatic padding waypoints near responsibility/timer nodes
+ * These ensure a minimum run-out distance before any turn can occur,
+ * creating cleaner, more professional-looking path routing.
+ * 
+ * The padding waypoints are NOT stored in edge.controlPoints,
+ * so they are invisible (not selectable) to users.
+ * 
+ * @param {Object} source - Source node position
+ * @param {Object} target - Target node position  
+ * @param {Array} controlPoints - User-defined control points
+ * @param {string} sourceType - Type of source node
+ * @param {string} targetType - Type of target node
+ * @returns {Array} - Array of padding waypoints with position metadata
+ */
+function addPaddingWaypoints(source, target, controlPoints, sourceType, targetType) {
+    const padTypes = ['responsibility', 'timer']; // Node types that need padding
+    const padding = NODE_EXIT_PADDING;
+    const waypoints = [];
+
+    // Calculate the primary direction of the edge
+    const nextPoint = controlPoints.length > 0 ? controlPoints[0] : target;
+    const prevPoint = controlPoints.length > 0 ? controlPoints[controlPoints.length - 1] : source;
+
+    // Add exit padding for source responsibility/timer
+    if (padTypes.includes(sourceType)) {
+        const dx = nextPoint.x - source.x;
+        const dy = nextPoint.y - source.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > padding * 1.5) { // Only add if edge is long enough
+            // Direction unit vector
+            const ux = dx / dist;
+            const uy = dy / dist;
+
+            // Add padding waypoint in the direction of the first segment
+            waypoints.push({
+                x: source.x + ux * padding,
+                y: source.y + uy * padding,
+                position: 'start', // Metadata for filtering
+                auto: true // Mark as automatic (invisible)
+            });
+        }
+    }
+
+    // Add entry padding for target responsibility/timer
+    if (padTypes.includes(targetType)) {
+        const dx = prevPoint.x - target.x;
+        const dy = prevPoint.y - target.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > padding * 1.5) { // Only add if edge is long enough
+            // Direction unit vector (pointing toward the approaching direction)
+            const ux = dx / dist;
+            const uy = dy / dist;
+
+            // Add padding waypoint from the approaching direction
+            waypoints.push({
+                x: target.x + ux * padding,
+                y: target.y + uy * padding,
+                position: 'end', // Metadata for filtering
+                auto: true // Mark as automatic (invisible)
+            });
+        }
+    }
+
+    return waypoints;
 }
 
 /**
