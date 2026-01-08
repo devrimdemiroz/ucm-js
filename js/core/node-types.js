@@ -348,19 +348,16 @@ export function createEdgeSVG(edge, sourceNode, targetNode) {
     const midPoint = getMidpoint(sourcePos, targetPos, edge.controlPoints);
     const angle = getAngle(sourcePos, targetPos, edge.controlPoints);
 
-    // Add invisible wide hit area for easier selection
-    const hitPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    hitPath.setAttribute('d', d);
-    hitPath.setAttribute('fill', 'none');
-    hitPath.setAttribute('stroke', 'transparent');
-    hitPath.setAttribute('stroke-width', '20');
-    hitPath.setAttribute('class', 'edge-hit-area');
-    hitPath.style.pointerEvents = 'visibleStroke';
-    hitPath.style.cursor = 'pointer';
-    group.appendChild(hitPath);
-
     path.setAttribute('d', d);
     group.appendChild(path);
+
+    // Midpoint Arrow
+    const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    arrow.setAttribute('class', 'mid-arrow');
+    arrow.setAttribute('d', 'M -6 -4 L 4 0 L -6 4 Z');
+    arrow.setAttribute('transform', `translate(${midPoint.x}, ${midPoint.y}) rotate(${angle})`);
+    arrow.setAttribute('fill', '#000');
+    group.appendChild(arrow);
 
     // Add visible waypoint markers (draw.io style)
     if (edge.controlPoints && edge.controlPoints.length > 0) {
@@ -375,13 +372,16 @@ export function createEdgeSVG(edge, sourceNode, targetNode) {
         });
     }
 
-    // Midpoint Arrow
-    const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    arrow.setAttribute('class', 'mid-arrow');
-    arrow.setAttribute('d', 'M -6 -4 L 4 0 L -6 4 Z');
-    arrow.setAttribute('transform', `translate(${midPoint.x}, ${midPoint.y}) rotate(${angle})`);
-    arrow.setAttribute('fill', '#000');
-    group.appendChild(arrow);
+    // Add invisible wide hit area for easier selection - ON TOP of visual elements
+    const hitPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    hitPath.setAttribute('d', d);
+    hitPath.setAttribute('fill', 'none');
+    hitPath.setAttribute('stroke', 'rgba(0,0,0,0)'); // Use alpha 0 instead of transparent keyword
+    hitPath.setAttribute('stroke-width', '20');
+    hitPath.setAttribute('class', 'edge-hit-area');
+    hitPath.style.pointerEvents = 'stroke'; // Ensure stroke catches events
+    hitPath.style.cursor = 'pointer';
+    group.appendChild(hitPath);
 
     return group;
 }

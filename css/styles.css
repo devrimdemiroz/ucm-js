@@ -1011,13 +1011,14 @@ input:checked+.slider:before {
 }
 
 /* Waypoint Markers (Enhanced Visibility) */
+/* Waypoint Markers (Enhanced Visibility) */
 .waypoint-marker {
     fill: var(--selection-color, #29b6f6);
     stroke: white;
     stroke-width: 2;
     cursor: move;
     opacity: 0;
-    transition: opacity var(--transition-fast), r var(--transition-fast), fill var(--transition-fast), stroke-width var(--transition-fast);
+    transition: opacity var(--transition-fast);
     /* Strong shadow for visibility against lines */
     filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
 }
@@ -1030,10 +1031,10 @@ input:checked+.slider:before {
 
 /* Selected waypoints get a brighter highlight and "halo" */
 .ucm-edge-group.selected .waypoint-marker {
-    fill: white;
-    stroke: var(--selection-color, #29b6f6);
-    stroke-width: 4;
-    r: 7;
+    fill: #29b6f6;
+    stroke: white;
+    stroke-width: 2;
+    r: 6;
 }
 
 .waypoint-marker:hover {
