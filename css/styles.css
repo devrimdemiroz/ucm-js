@@ -1757,3 +1757,395 @@ body.hide-labels .component-label {
 .notification-error .notification-icon {
     color: #f44336;
 }
+
+/* ============================================
+   Mobile Responsive Design
+   iOS Chrome, Safari, Android Chrome compatible
+   ============================================ */
+
+/* Mobile Bottom Navigation Bar (hidden on desktop) */
+.mobile-nav {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    background: var(--bg-primary);
+    border-top: 1px solid var(--border-light);
+    z-index: 1000;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.mobile-nav-items {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    height: 56px;
+    padding: 0 8px;
+}
+
+.mobile-nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 8px 16px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 10px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-nav-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+.mobile-nav-btn.active {
+    color: var(--selection-color);
+}
+
+.mobile-nav-btn:active {
+    background: var(--bg-hover);
+    transform: scale(0.95);
+}
+
+/* Mobile Panel (slides up from bottom) */
+.mobile-panel {
+    display: none;
+    position: fixed;
+    bottom: 56px;
+    left: 0;
+    right: 0;
+    max-height: 50vh;
+    background: var(--bg-primary);
+    border-top: 1px solid var(--border-light);
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+    z-index: 999;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    overflow: hidden;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.mobile-panel.open {
+    transform: translateY(0);
+}
+
+.mobile-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-light);
+    background: var(--bg-secondary);
+}
+
+.mobile-panel-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.mobile-panel-close {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    border-radius: 50%;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.mobile-panel-content {
+    padding: 16px;
+    overflow-y: auto;
+    max-height: calc(50vh - 60px);
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Mobile backdrop overlay */
+.mobile-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 56px;
+    background: rgba(0,0,0,0.3);
+    z-index: 998;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.mobile-backdrop.visible {
+    opacity: 1;
+}
+
+/* ============================================
+   Tablet Breakpoint (768px - 1024px)
+   ============================================ */
+@media screen and (max-width: 1024px) {
+    #sidebar {
+        width: 280px;
+    }
+    
+    .panel-header {
+        padding: 8px 12px;
+    }
+    
+    .panel-content {
+        padding: 8px;
+    }
+}
+
+/* ============================================
+   Mobile Breakpoint (max-width: 768px)
+   ============================================ */
+@media screen and (max-width: 768px) {
+    /* Hide desktop sidebar on mobile */
+    #sidebar {
+        display: none;
+    }
+    
+    /* Show mobile navigation */
+    .mobile-nav {
+        display: block;
+    }
+    
+    .mobile-panel {
+        display: block;
+    }
+    
+    .mobile-backdrop {
+        display: block;
+        pointer-events: none;
+    }
+    
+    .mobile-backdrop.visible {
+        pointer-events: auto;
+    }
+    
+    /* Full-width canvas */
+    #canvas-container {
+        width: 100vw;
+        height: calc(100vh - 48px - 56px); /* toolbar + bottom nav */
+        margin-bottom: 56px;
+    }
+    
+    /* Compact toolbar for mobile */
+    #toolbar {
+        padding: 4px 8px;
+        height: 48px;
+        gap: 4px;
+    }
+    
+    .toolbar-group {
+        gap: 2px;
+    }
+    
+    .tool-btn {
+        width: 36px;
+        height: 36px;
+        padding: 6px;
+    }
+    
+    .tool-btn svg {
+        width: 18px;
+        height: 18px;
+    }
+    
+    /* Hide title and some buttons on mobile */
+    .toolbar-title span {
+        display: none;
+    }
+    
+    .file-selector select {
+        max-width: 120px;
+        font-size: 12px;
+    }
+    
+    /* Hide export dropdown on mobile */
+    .dropdown {
+        display: none;
+    }
+    
+    /* Larger touch targets */
+    .ucm-node .hit-area {
+        r: 32 !important;
+    }
+    
+    .edge-hit-area {
+        stroke-width: 30px !important;
+    }
+    
+    /* Larger waypoint markers for touch */
+    .waypoint-marker {
+        r: 10 !important;
+    }
+    
+    /* Disable hover effects on touch devices */
+    @media (hover: none) {
+        .tool-btn:hover {
+            background: transparent;
+        }
+        
+        .ucm-edge-group:hover .ucm-edge {
+            stroke-width: inherit;
+        }
+    }
+}
+
+/* ============================================
+   Small Mobile (max-width: 480px)
+   ============================================ */
+@media screen and (max-width: 480px) {
+    #toolbar {
+        padding: 2px 4px;
+        height: 44px;
+    }
+    
+    .tool-btn {
+        width: 32px;
+        height: 32px;
+        padding: 4px;
+    }
+    
+    .file-selector select {
+        max-width: 100px;
+        font-size: 11px;
+        padding: 4px;
+    }
+    
+    /* Hide undo/redo on very small screens */
+    #btn-undo, #btn-redo {
+        display: none;
+    }
+    
+    #canvas-container {
+        height: calc(100vh - 44px - 56px);
+    }
+    
+    .mobile-nav-btn {
+        padding: 6px 12px;
+        font-size: 9px;
+    }
+    
+    .mobile-nav-btn svg {
+        width: 20px;
+        height: 20px;
+    }
+}
+
+/* ============================================
+   Touch Device Optimizations
+   ============================================ */
+@media (pointer: coarse) {
+    /* Larger tap targets */
+    .tool-btn {
+        min-width: 44px;
+        min-height: 44px;
+    }
+    
+    .switch {
+        transform: scale(1.1);
+    }
+    
+    .setting-select {
+        min-height: 44px;
+        font-size: 16px; /* Prevents iOS zoom on focus */
+    }
+    
+    input[type="text"],
+    input[type="number"],
+    textarea {
+        font-size: 16px; /* Prevents iOS zoom on focus */
+    }
+    
+    /* Larger node selection area */
+    .ucm-node .hit-area {
+        r: 36 !important;
+    }
+}
+
+/* ============================================
+   Landscape Mobile
+   ============================================ */
+@media screen and (max-width: 768px) and (orientation: landscape) {
+    #toolbar {
+        height: 40px;
+    }
+    
+    .mobile-nav {
+        height: 48px;
+    }
+    
+    .mobile-nav-items {
+        height: 48px;
+    }
+    
+    #canvas-container {
+        height: calc(100vh - 40px - 48px);
+        margin-bottom: 48px;
+    }
+    
+    .mobile-panel {
+        max-height: 40vh;
+        bottom: 48px;
+    }
+}
+
+/* ============================================
+   iOS Safari Specific Fixes
+   ============================================ */
+@supports (-webkit-touch-callout: none) {
+    /* iOS-specific padding for notch/home indicator */
+    .mobile-nav {
+        padding-bottom: max(env(safe-area-inset-bottom), 8px);
+    }
+    
+    #canvas-container {
+        /* Account for iOS bottom safe area */
+        margin-bottom: calc(56px + env(safe-area-inset-bottom, 0));
+    }
+    
+    /* Prevent elastic scrolling on canvas */
+    #canvas {
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+}
+
+/* ============================================
+   Print / Export Styles
+   ============================================ */
+@media print {
+    #sidebar,
+    #toolbar,
+    .mobile-nav,
+    .mobile-panel,
+    .mobile-backdrop {
+        display: none !important;
+    }
+    
+    #canvas-container {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+    }
+    
+    .ucm-component rect {
+        fill: white !important;
+    }
+}

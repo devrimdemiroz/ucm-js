@@ -19,6 +19,7 @@ import { scenarioPanel } from './ui/scenario-panel.js';
 import { fileLoader } from './core/file-loader.js';
 import { keyboard } from './ui/keyboard.js';
 import { notifications } from './ui/notifications.js';
+import { mobileNav } from './ui/mobile-nav.js';
 
 class UCMEditor {
     constructor() {
@@ -49,6 +50,7 @@ class UCMEditor {
         settingsPanel.init();
         aiChat.init();
         keyboard.init();
+        mobileNav.init();
 
         // Set default tool
         selection.init();
