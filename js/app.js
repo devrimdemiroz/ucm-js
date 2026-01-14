@@ -68,17 +68,20 @@ class UCMEditor {
     }
 
     async loadDefaultExample() {
+        const defaultExample = 'dilbert';
         try {
-            // Load the observability stack as default (shows the app architecture)
-            await fileLoader.loadExample('observability-stack');
+            console.log(`📂 Loading default example: ${defaultExample}`);
+            await fileLoader.loadExample(defaultExample);
 
             // Update dropdown to reflect loaded file
             const dropdown = document.getElementById('file-dropdown');
             if (dropdown) {
-                dropdown.value = 'observability-stack';
+                dropdown.value = defaultExample;
             }
+            console.log('✅ Default example loaded successfully');
         } catch (error) {
-            console.warn('Failed to load default example, using fallback demo:', error);
+            console.error('❌ Failed to load default example:', error);
+            console.error('Error stack:', error.stack);
             notifications.warning('Failed to load default example, using fallback demo');
             this.createFallbackDemo();
         }
