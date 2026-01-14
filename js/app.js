@@ -16,7 +16,6 @@ import { settingsPanel } from './ui/settings-panel.js';
 import { aiChat } from './ui/ai-chat.js';
 import { actionsPanel } from './ui/actions-panel.js';
 import { scenarioPanel } from './ui/scenario-panel.js';
-import { tracing } from './core/tracing.js';
 import { fileLoader } from './core/file-loader.js';
 import { keyboard } from './ui/keyboard.js';
 import { notifications } from './ui/notifications.js';
@@ -31,8 +30,8 @@ class UCMEditor {
 
         console.log('🚀 Initializing UCM Editor...');
 
-        // Initialize tracing first
-        tracing.init();
+        // Note: Tracing is enabled via settings panel, not at startup
+        // tracing.setEnabled(true) can be called here if auto-enable is desired
 
         // Initialize notification system
         notifications.init();
