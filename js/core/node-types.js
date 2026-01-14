@@ -358,7 +358,7 @@ export function createEdgeSVG(edge, sourceNode, targetNode) {
         targetType
     };
 
-    const d = calculateEdgePath(sourcePos, targetPos, edge.controlPoints, options);
+    const { path: d, autoWaypoints } = calculateEdgePathWithWaypoints(sourcePos, targetPos, edge.controlPoints, options);
     const midPoint = getMidpoint(sourcePos, targetPos, edge.controlPoints);
     const angle = getAngle(sourcePos, targetPos, edge.controlPoints);
 
@@ -409,6 +409,19 @@ export function createEdgeSVG(edge, sourceNode, targetNode) {
             waypoint.setAttribute('cy', cp.y);
             waypoint.setAttribute('r', '6'); // Default size, CSS can override
             group.appendChild(waypoint);
+        });
+    }
+
+    // Add auto-generated waypoint markers (pale gray, visible only when setting enabled)
+    if (autoWaypoints && autoWaypoints.length > 0) {
+        autoWaypoints.forEach((wp, index) => {
+            const autoWp = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            autoWp.setAttribute('class', 'auto-waypoint-marker');
+            autoWp.setAttribute('data-auto-waypoint-index', index);
+            autoWp.setAttribute('cx', wp.x);
+            autoWp.setAttribute('cy', wp.y);
+            autoWp.setAttribute('r', '5');
+            group.appendChild(autoWp);
         });
     }
 
@@ -518,6 +531,15 @@ export function getAngle(source, target, controlPoints) {
  * These padding waypoints are invisible (not selectable).
  */
 export function calculateEdgePath(source, target, controlPoints = [], options = {}) {
+    const result = calculateEdgePathWithWaypoints(source, target, controlPoints, options);
+    return result.path;
+}
+
+/**
+ * Calculate edge path AND return auto-generated waypoints for visualization
+ * Returns { path: string, autoWaypoints: Array }
+ */
+export function calculateEdgePathWithWaypoints(source, target, controlPoints = [], options = {}) {
     const mode = options.routingMode || currentRoutingMode;
     const sourceType = options.sourceType;
     const targetType = options.targetType;
@@ -531,6 +553,8 @@ export function calculateEdgePath(source, target, controlPoints = [], options = 
 
     // Always generate octilinear waypoints - every edge gets proper routing
     let effectivePoints = controlPoints;
+    let autoWaypoints = []; // Track all auto-generated waypoints for visualization
+    
     if (mode !== ROUTING_MODES.freeform) {
         // If no manual waypoints, auto-generate octilinear route
         if (controlPoints.length === 0) {
@@ -550,6 +574,9 @@ export function calculateEdgePath(source, target, controlPoints = [], options = 
             const startPad = paddingWaypoints.filter(p => p.position === 'start').map(p => ({ x: p.x, y: p.y }));
             const endPad = paddingWaypoints.filter(p => p.position === 'end').map(p => ({ x: p.x, y: p.y }));
             effectivePoints = [...startPad, ...octiWaypoints, ...endPad];
+            
+            // All these are auto-generated
+            autoWaypoints = [...effectivePoints];
         }
     }
 
@@ -561,12 +588,14 @@ export function calculateEdgePath(source, target, controlPoints = [], options = 
         ...paddingWaypoints.filter(p => p.position === 'end')];
         // Filter out position metadata
         const cleanPoints = allPoints.map(p => ({ x: p.x, y: p.y }));
-        return getSmoothPath([source, ...cleanPoints, target]);
+        // Only padding waypoints are auto-generated when manual waypoints exist
+        autoWaypoints = paddingWaypoints.map(p => ({ x: p.x, y: p.y }));
+        return { path: getSmoothPath([source, ...cleanPoints, target]), autoWaypoints };
     }
 
     // Direct line if still no waypoints (and no auto-routing)
     if (effectivePoints.length === 0) {
-        return `M ${source.x} ${source.y} L ${target.x} ${target.y}`;
+        return { path: `M ${source.x} ${source.y} L ${target.x} ${target.y}`, autoWaypoints: [] };
     }
 
     // ... (Existing Metro/Octilinear logic for auto-routing) ...
@@ -614,7 +643,7 @@ export function calculateEdgePath(source, target, controlPoints = [], options = 
     // Final line to target
     d += ` L ${target.x} ${target.y}`;
 
-    return d;
+    return { path: d, autoWaypoints };
 }
 
 /**

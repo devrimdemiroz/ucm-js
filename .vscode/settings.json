@@ -6,6 +6,11 @@
         },
         "git add": true,
         "git commit": true,
-        "git push": true
+        "git push": true,
+        "git tag": true,
+        "/^node --check js/core/node-types\\.js 2>&1$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
     }
 }

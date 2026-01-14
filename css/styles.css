@@ -1076,6 +1076,31 @@ input:checked+.slider:before {
     stroke-width: 3 !important;
 }
 
+/* Auto-generated waypoints (hidden by default) */
+.auto-waypoint-marker {
+    fill: #cccccc;
+    stroke: #999999;
+    stroke-width: 1.5;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-fast);
+}
+
+/* Show auto waypoints when setting is enabled */
+body.show-auto-waypoints .auto-waypoint-marker {
+    opacity: 0.5;
+}
+
+body.show-auto-waypoints .ucm-edge-group:hover .auto-waypoint-marker {
+    opacity: 0.7;
+}
+
+body.show-auto-waypoints .ucm-edge-group.selected .auto-waypoint-marker {
+    opacity: 0.8;
+    fill: #aaddff;
+    stroke: #66aacc;
+}
+
 /* Labels */
 .node-label {
     font-family: 'Inter', sans-serif;

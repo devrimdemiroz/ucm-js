@@ -13,6 +13,7 @@ class SettingsPanel {
         this.snapToGridToggle = null;
         this.autoLayoutToggle = null;
         this.routingModeSelect = null;
+        this.showAutoWaypointsToggle = null;
 
         // Global settings state
         this.settings = {
@@ -22,6 +23,7 @@ class SettingsPanel {
             snapToGrid: false,
             autoLayout: false,
             observability: false,
+            showAutoWaypoints: false,
             gridSize: 20,
             routingMode: 'octilinear'
         };
@@ -35,6 +37,7 @@ class SettingsPanel {
         this.autoLayoutToggle = document.getElementById('setting-auto-layout');
         this.observabilityToggle = document.getElementById('setting-observability');
         this.routingModeSelect = document.getElementById('setting-routing-mode');
+        this.showAutoWaypointsToggle = document.getElementById('setting-show-auto-waypoints');
 
         if (!this.transitModeToggle) return;
 
@@ -66,6 +69,10 @@ class SettingsPanel {
             this.setRoutingMode(e.target.value);
         });
 
+        this.showAutoWaypointsToggle?.addEventListener('change', (e) => {
+            this.setShowAutoWaypoints(e.target.checked);
+        });
+
         // Apply initial settings
         this.setTransitMode(this.transitModeToggle.checked);
         this.setGridVisibility(this.showGridToggle.checked);
@@ -78,6 +85,7 @@ class SettingsPanel {
         if (this.routingModeSelect) {
             this.routingModeSelect.value = getRoutingMode();
         }
+        this.setShowAutoWaypoints(this.showAutoWaypointsToggle?.checked ?? false);
     }
 
     setTransitMode(enabled) {
@@ -120,6 +128,12 @@ class SettingsPanel {
     setRoutingMode(mode) {
         this.settings.routingMode = mode;
         setRoutingMode(mode);
+        canvas.renderAll();
+    }
+
+    setShowAutoWaypoints(enabled) {
+        this.settings.showAutoWaypoints = enabled;
+        document.body.classList.toggle('show-auto-waypoints', enabled);
         canvas.renderAll();
     }
 
