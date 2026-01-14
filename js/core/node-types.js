@@ -614,6 +614,9 @@ export function calculateEdgePath(source, target, controlPoints = [], options = 
  * The padding waypoints are NOT stored in edge.controlPoints,
  * so they are invisible (not selectable) to users.
  * 
+ * IMPORTANT: For paths entering/exiting from north (top) or south (bottom),
+ * we ALWAYS add padding waypoints to ensure proper spacing before turns.
+ * 
  * @param {Object} source - Source node position
  * @param {Object} target - Target node position  
  * @param {Array} controlPoints - User-defined control points
@@ -635,16 +638,25 @@ function addPaddingWaypoints(source, target, controlPoints, sourceType, targetTy
         const dx = nextPoint.x - source.x;
         const dy = nextPoint.y - source.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
+        const absDx = Math.abs(dx);
+        const absDy = Math.abs(dy);
 
-        if (dist > padding * 1.5) { // Only add if edge is long enough
+        // Determine if this is primarily a vertical path (north/south direction)
+        const isVerticalPath = absDy > absDx;
+
+        // Always add padding if edge is long enough, especially for vertical paths
+        if (dist > padding) {
             // Direction unit vector
             const ux = dx / dist;
             const uy = dy / dist;
 
+            // For vertical paths (north/south), ensure proper run-out
+            const effectivePadding = isVerticalPath ? padding : padding;
+
             // Add padding waypoint in the direction of the first segment
             waypoints.push({
-                x: source.x + ux * padding,
-                y: source.y + uy * padding,
+                x: source.x + ux * effectivePadding,
+                y: source.y + uy * effectivePadding,
                 position: 'start', // Metadata for filtering
                 auto: true // Mark as automatic (invisible)
             });
@@ -656,16 +668,25 @@ function addPaddingWaypoints(source, target, controlPoints, sourceType, targetTy
         const dx = prevPoint.x - target.x;
         const dy = prevPoint.y - target.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
+        const absDx = Math.abs(dx);
+        const absDy = Math.abs(dy);
 
-        if (dist > padding * 1.5) { // Only add if edge is long enough
+        // Determine if this is primarily a vertical path (north/south direction)
+        const isVerticalPath = absDy > absDx;
+
+        // Always add padding if edge is long enough, especially for vertical paths
+        if (dist > padding) {
             // Direction unit vector (pointing toward the approaching direction)
             const ux = dx / dist;
             const uy = dy / dist;
 
+            // For vertical paths (north/south), ensure proper run-out
+            const effectivePadding = isVerticalPath ? padding : padding;
+
             // Add padding waypoint from the approaching direction
             waypoints.push({
-                x: target.x + ux * padding,
-                y: target.y + uy * padding,
+                x: target.x + ux * effectivePadding,
+                y: target.y + uy * effectivePadding,
                 position: 'end', // Metadata for filtering
                 auto: true // Mark as automatic (invisible)
             });
