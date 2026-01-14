@@ -625,8 +625,9 @@ export function calculateEdgePath(source, target, controlPoints = [], options = 
  * The padding waypoints are NOT stored in edge.controlPoints,
  * so they are invisible (not selectable) to users.
  * 
- * IMPORTANT: For paths entering/exiting from north (top) or south (bottom),
- * we ALWAYS add padding waypoints to ensure proper spacing before turns.
+ * IMPORTANT: For paths entering/exiting responsibilities, we use the
+ * PRIMARY axis direction (pure vertical or pure horizontal) for the
+ * run-out, creating clean straight segments before any diagonal turns.
  * 
  * @param {Object} source - Source node position
  * @param {Object} target - Target node position  
@@ -652,24 +653,28 @@ function addPaddingWaypoints(source, target, controlPoints, sourceType, targetTy
         const absDx = Math.abs(dx);
         const absDy = Math.abs(dy);
 
-        // Determine if this is primarily a vertical path (north/south direction)
-        const isVerticalPath = absDy > absDx;
-
-        // Always add padding if edge is long enough, especially for vertical paths
+        // Always add padding if edge is long enough
         if (dist > padding) {
-            // Direction unit vector
-            const ux = dx / dist;
-            const uy = dy / dist;
+            // Use PRIMARY axis direction for cleaner run-out
+            // If vertical distance > horizontal, go straight up/down first
+            // If horizontal distance > vertical, go straight left/right first
+            let padX, padY;
+            
+            if (absDy >= absDx) {
+                // Primarily vertical - go straight up or down
+                padX = source.x;
+                padY = source.y + (dy > 0 ? padding : -padding);
+            } else {
+                // Primarily horizontal - go straight left or right
+                padX = source.x + (dx > 0 ? padding : -padding);
+                padY = source.y;
+            }
 
-            // For vertical paths (north/south), ensure proper run-out
-            const effectivePadding = isVerticalPath ? padding : padding;
-
-            // Add padding waypoint in the direction of the first segment
             waypoints.push({
-                x: source.x + ux * effectivePadding,
-                y: source.y + uy * effectivePadding,
-                position: 'start', // Metadata for filtering
-                auto: true // Mark as automatic (invisible)
+                x: padX,
+                y: padY,
+                position: 'start',
+                auto: true
             });
         }
     }
@@ -682,24 +687,26 @@ function addPaddingWaypoints(source, target, controlPoints, sourceType, targetTy
         const absDx = Math.abs(dx);
         const absDy = Math.abs(dy);
 
-        // Determine if this is primarily a vertical path (north/south direction)
-        const isVerticalPath = absDy > absDx;
-
-        // Always add padding if edge is long enough, especially for vertical paths
+        // Always add padding if edge is long enough
         if (dist > padding) {
-            // Direction unit vector (pointing toward the approaching direction)
-            const ux = dx / dist;
-            const uy = dy / dist;
+            // Use PRIMARY axis direction for cleaner approach
+            let padX, padY;
+            
+            if (absDy >= absDx) {
+                // Primarily vertical - approach straight from above/below
+                padX = target.x;
+                padY = target.y + (dy > 0 ? padding : -padding);
+            } else {
+                // Primarily horizontal - approach straight from left/right
+                padX = target.x + (dx > 0 ? padding : -padding);
+                padY = target.y;
+            }
 
-            // For vertical paths (north/south), ensure proper run-out
-            const effectivePadding = isVerticalPath ? padding : padding;
-
-            // Add padding waypoint from the approaching direction
             waypoints.push({
-                x: target.x + ux * effectivePadding,
-                y: target.y + uy * effectivePadding,
-                position: 'end', // Metadata for filtering
-                auto: true // Mark as automatic (invisible)
+                x: padX,
+                y: padY,
+                position: 'end',
+                auto: true
             });
         }
     }
