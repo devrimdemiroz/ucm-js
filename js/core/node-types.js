@@ -532,14 +532,25 @@ export function calculateEdgePath(source, target, controlPoints = [], options = 
     // Always generate octilinear waypoints - every edge gets proper routing
     let effectivePoints = controlPoints;
     if (mode !== ROUTING_MODES.freeform) {
-        // If no manual waypoints, auto-generate
-        if (controlPoints.length === 0 && paddingWaypoints.length === 0) {
-            effectivePoints = generateOctilinearRoute(source, target, mode, sourceType, targetType);
-        } else if (controlPoints.length === 0 && paddingWaypoints.length > 0) {
-            // Use padding waypoints only
-            effectivePoints = paddingWaypoints;
+        // If no manual waypoints, auto-generate octilinear route
+        if (controlPoints.length === 0) {
+            // Generate octilinear routing between (potentially padded) endpoints
+            const routeSource = paddingWaypoints.find(p => p.position === 'start') || source;
+            const routeTarget = paddingWaypoints.find(p => p.position === 'end') || target;
+            
+            const octiWaypoints = generateOctilinearRoute(
+                { x: routeSource.x, y: routeSource.y }, 
+                { x: routeTarget.x, y: routeTarget.y }, 
+                mode, 
+                sourceType, 
+                targetType
+            );
+            
+            // Combine: start padding + octilinear waypoints + end padding
+            const startPad = paddingWaypoints.filter(p => p.position === 'start').map(p => ({ x: p.x, y: p.y }));
+            const endPad = paddingWaypoints.filter(p => p.position === 'end').map(p => ({ x: p.x, y: p.y }));
+            effectivePoints = [...startPad, ...octiWaypoints, ...endPad];
         }
-        // If manual waypoints exist, use them with padding
     }
 
     // Combine padding waypoints with control points for smooth paths
